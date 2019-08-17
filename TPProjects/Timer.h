@@ -1,8 +1,9 @@
-#include<cstdio>
-#include<cstring>
-#include<time.h>
-#include<sys/timeb.h>
-#include<vector>
+#include <cstdio>
+#include <cstring>
+#include <time.h>
+#include <sys/timeb.h>
+#include <vector>
+#include "getconfig.h"
 
 #ifndef __TIMER_MNG_
 #define __TIMER_MNG_

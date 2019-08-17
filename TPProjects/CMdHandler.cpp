@@ -16,9 +16,9 @@ void CMdHandler::OnFrontConnected() {
 
 	CThostFtdcReqUserLoginField userFields = { 0 };
 
-	strcpy_s(userFields.BrokerID, "9999");
-	strcpy_s(userFields.UserID, "125013");
-	strcpy_s(userFields.Password, "Song1227");
+	strcpy_s(userFields.BrokerID, getConfig("config", "BrokerID").c_str());
+	strcpy_s(userFields.UserID, getConfig("config", "UserID").c_str());
+	strcpy_s(userFields.Password, getConfig("config", "Password").c_str());
 
 	pUserMdApi->ReqUserLogin(&userFields, requestIndex++);
 }

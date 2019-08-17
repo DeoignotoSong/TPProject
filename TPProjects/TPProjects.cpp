@@ -8,13 +8,14 @@
 #include "ThostFtdcTraderApi.h"
 #include <Windows.h>
 #include <direct.h>
+#include "getconfig.h"
 
 using namespace std;
 
 int main()
 {
 	// 保存生成的log文件的文件夹路径
-	string logFilePath = "./flow/";
+	string logFilePath = getConfig("config", "LogFilesPath");
 
 	// 创建保存生成的log文件的文件夹
 	// folderCreatedResult：
@@ -29,7 +30,7 @@ int main()
 		cout << "Log directory is already existed." << endl;
 	}
 
-	CThostFtdcTraderApi *m_pApi = CThostFtdcTraderApi::CreateFtdcTraderApi("./flow/");
+	CThostFtdcTraderApi *m_pApi = CThostFtdcTraderApi::CreateFtdcTraderApi(logFilePath.c_str());
 
 	CTraderHandler sh(m_pApi);
 
@@ -38,7 +39,7 @@ int main()
 	m_pApi->SubscribePrivateTopic(THOST_TERT_QUICK);
 	m_pApi->SubscribePublicTopic(THOST_TERT_QUICK);
 
-	m_pApi->RegisterFront((char*)"tcp://218.202.237.33 :10102");
+	m_pApi->RegisterFront((char*)getConfig("config", "FrontAddr").c_str());
 	cout << m_pApi->GetApiVersion() << endl;
 	m_pApi->Init();
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "ThostFtdcTraderApi.h"
+#include "getconfig.h"
 #include <string.h>
 #include <iostream>
 

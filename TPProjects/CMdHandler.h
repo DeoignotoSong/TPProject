@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string.h>
 #include "ThostFtdcMdApi.h"
+#include "getconfig.h"
 
 using namespace std;
 
