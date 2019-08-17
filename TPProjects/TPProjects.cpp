@@ -1,5 +1,5 @@
 ﻿// TPProjects.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
-// add another log
+// add some msg: shixiong niu b~
 
 #include <iostream>
 #include "ThostFtdcMdApi.h"
