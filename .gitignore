@@ -33,9 +33,5 @@
 
 Debug/
 x64/
-./Debug/
-./x64/
 .vs/
-./TPProjects/flow/
-./TPProjects/flow/*
 TPProjects/flow/
