@@ -153,12 +153,14 @@
   <ItemGroup>
     <ClCompile Include="CMdHandler.cpp" />
     <ClCompile Include="CTraderHandler.cpp" />
+    <ClCompile Include="getconfig.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="TPProjects.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMdHandler.h" />
     <ClInclude Include="CTraderHandler.h" />
+    <ClInclude Include="getconfig.h" />
     <ClInclude Include="ThostFtdcMdApi.h" />
     <ClInclude Include="ThostFtdcTraderApi.h" />
     <ClInclude Include="ThostFtdcUserApiDataType.h" />
@@ -166,6 +168,7 @@
     <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="config.ini" />
     <None Include="thostmduserapi_se.dll" />
     <None Include="thosttraderapi_se.dll" />
   </ItemGroup>
