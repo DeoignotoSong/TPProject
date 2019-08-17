@@ -14,10 +14,10 @@ void CTraderHandler::ReqAuthenticate()
 {
 	CThostFtdcReqAuthenticateField authField = { 0 };
 
-	strcpy_s(authField.AuthCode, "0000000000000000");
-	strcpy_s(authField.AppID, "simnow_client_test");
-	strcpy_s(authField.BrokerID, "9999");
-	strcpy_s(authField.UserID, "125013");
+	strcpy_s(authField.AuthCode, getConfig("config", "AuthCode").c_str());
+	strcpy_s(authField.AppID, getConfig("config", "AppID").c_str());
+	strcpy_s(authField.BrokerID, getConfig("config", "BrokerID").c_str());
+	strcpy_s(authField.UserID, getConfig("config", "InvestorID").c_str());
 
 	int b = pUserTraderApi->ReqAuthenticate(&authField, requestIndex++);
 
@@ -40,9 +40,9 @@ void CTraderHandler::OnRspAuthenticate(CThostFtdcRspAuthenticateField* pRspAuthe
 
 	CThostFtdcReqUserLoginField userField = { 0 };
 
-	strcpy_s(userField.BrokerID, "9999");
-	strcpy_s(userField.UserID, "125013");
-	strcpy_s(userField.Password, "Song1227");
+	strcpy_s(userField.BrokerID, getConfig("config", "BrokerID").c_str());
+	strcpy_s(userField.UserID, getConfig("config", "InvestorID").c_str());
+	strcpy_s(userField.Password, getConfig("config", "Password").c_str());
 
 	int result = pUserTraderApi->ReqUserLogin(&userField, requestIndex++);
 
@@ -61,8 +61,8 @@ void CTraderHandler::OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,
 	std::cout << "Trading Day: " << tradingDay << endl;
 
 	CThostFtdcSettlementInfoConfirmField confirmField = { 0 };
-	strcpy_s(confirmField.BrokerID, "9999");
-	strcpy_s(confirmField.InvestorID, "125013");
+	strcpy_s(confirmField.BrokerID, getConfig("config", "BrokerID").c_str());
+	strcpy_s(confirmField.InvestorID, getConfig("config", "InvestorID").c_str());
 	pUserTraderApi->ReqSettlementInfoConfirm(&confirmField, nRequestID++);
 }
 
@@ -138,26 +138,26 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 	switch (operation)
 	{
 	case 0:
-		strcpy_s(tradingAccountField.BrokerID, "9999");
-		strcpy_s(tradingAccountField.InvestorID, "125013");
+		strcpy_s(tradingAccountField.BrokerID, getConfig("config", "BrokerID").c_str());
+		strcpy_s(tradingAccountField.InvestorID, getConfig("config", "InvestorID").c_str());
 		strcpy_s(tradingAccountField.CurrencyID, "CNY");
 
 		result = pUserTraderApi->ReqQryTradingAccount(&tradingAccountField, requestIndex++);
 
 		break;
 	case 1:
-		strcpy_s(investorPositionField.BrokerID, "9999");
-		strcpy_s(investorPositionField.InvestorID, "125013");
+		strcpy_s(investorPositionField.BrokerID, getConfig("config", "BrokerID").c_str());
+		strcpy_s(investorPositionField.InvestorID, getConfig("config", "InvestorID").c_str());
 
 		result = pUserTraderApi->ReqQryInvestorPosition(&investorPositionField, requestIndex++);
 
 		break;
 	case 2:
-		strcpy_s(inputOrderField.BrokerID, "9999");
-		strcpy_s(inputOrderField.InvestorID, "125013");
+		strcpy_s(inputOrderField.BrokerID, getConfig("config", "BrokerID").c_str());
+		strcpy_s(inputOrderField.InvestorID, getConfig("config", "InvestorID").c_str());
 		strcpy_s(inputOrderField.ExchangeID, "SHFE");
 		strcpy_s(inputOrderField.InstrumentID, pDepthMarketData->InstrumentID);
-		strcpy_s(inputOrderField.UserID, "125013");
+		strcpy_s(inputOrderField.UserID, getConfig("config", "InvestorID").c_str());
 		strcpy_s(inputOrderField.OrderRef, "");
 		inputOrderField.Direction = THOST_FTDC_D_Buy;
 		inputOrderField.CombOffsetFlag[0] = THOST_FTDC_OF_Open;

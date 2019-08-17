@@ -27,6 +27,9 @@
     <ClCompile Include="Timer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="getconfig.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMdHandler.h">
@@ -50,10 +53,16 @@
     <ClInclude Include="Timer.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="getconfig.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="thostmduserapi_se.dll" />
     <None Include="thosttraderapi_se.dll" />
+    <None Include="config.ini">
+      <Filter>头文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Library Include="thostmduserapi_se.lib" />
