@@ -7,11 +7,28 @@
 #include "CTraderHandler.h"
 #include "ThostFtdcTraderApi.h"
 #include <Windows.h>
+#include <direct.h>
 
 using namespace std;
 
 int main()
 {
+	// 保存生成的log文件的文件夹路径
+	string logFilePath = "./flow/";
+
+	// 创建保存生成的log文件的文件夹
+	// folderCreatedResult：
+	// 0：创建成功
+	// -1：文件夹存在，创建失败
+	int folderCreatedResult = _mkdir(logFilePath.c_str());
+
+	if (folderCreatedResult == 0) {
+		cout << "Create log directory success." << endl;
+	}
+	else {
+		cout << "Log directory is already existed." << endl;
+	}
+
 	CThostFtdcTraderApi *m_pApi = CThostFtdcTraderApi::CreateFtdcTraderApi("./flow/");
 
 	CTraderHandler sh(m_pApi);
