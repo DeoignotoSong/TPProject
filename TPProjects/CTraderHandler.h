@@ -60,6 +60,7 @@ public:
 		int nRequestID,
 		bool bIsLast
 	);
+	void beginQuery();
 	void OnRspQryInvestorPosition(
 		CThostFtdcInvestorPositionField* pInvestorPosition, 
 		CThostFtdcRspInfoField* pRspInfo, 
@@ -68,5 +69,6 @@ public:
 	);
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
+	CThostFtdcDepthMarketDataField* pDepthMarketData;
 	int requestIndex;
 };

@@ -76,7 +76,6 @@ CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDep
 void CTraderHandler::OnFrontConnected()
 {
 	std::cout << "Connect Success......" << endl;
-
 	this->ReqAuthenticate();
 }
 
@@ -120,8 +119,50 @@ void CTraderHandler::OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,
 	pUserTraderApi->ReqSettlementInfoConfirm(&confirmField, nRequestID++);
 }
 
+void CTraderHandler::beginQuery() {
+
+	int operation = 0;
+	// 如果使用while(1)，控制权不会到对应的OnRsp方法上，所以没法打印出来。此处该使用额外线程
+	//while (1) {
+	std::cout << "请输入选择的操作（\n0.查询账户；\n1.查询持仓；\n2.下单；）：";
+	std::cin >> operation;
+
+	int result = 0;
+	CThostFtdcQryTradingAccountField tradingAccountField = { 0 };
+	CThostFtdcQryInvestorPositionField investorPositionField = { 0 };
+	CThostFtdcInputOrderField inputOrderField = { 0 };
+
+	switch (operation)
+	{
+	case 0:
+		strcpy_s(tradingAccountField.BrokerID, getConfig("config", "BrokerID").c_str());
+		strcpy_s(tradingAccountField.InvestorID, getConfig("config", "InvestorID").c_str());
+		strcpy_s(tradingAccountField.CurrencyID, "CNY");
+		//请求查询资金账户
+		result = pUserTraderApi->ReqQryTradingAccount(&tradingAccountField, requestIndex++);
+
+		break;
+	case 1:
+		strcpy_s(investorPositionField.BrokerID, getConfig("config", "BrokerID").c_str());
+		strcpy_s(investorPositionField.InvestorID, getConfig("config", "InvestorID").c_str());
+
+		result = pUserTraderApi->ReqQryInvestorPosition(&investorPositionField, requestIndex++);
+
+		break;
+	case 2:
+
+		CThostFtdcInputOrderField inputOrderField = composeInputOrder(pDepthMarketData);
+		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
+
+		break;
+	}
+	//}
+}
+
+// 请求查询行情响应。当客户端发出请求查询行情指令后，交易托管系统返回响应时，该方法会被调用。
 void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDepthMarketData, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
+	this->pDepthMarketData = pDepthMarketData;
 	std::cout << "查询行情响应......" << std::endl;
 	if (pRspInfo != nullptr) {
 		if (pRspInfo != nullptr) {
@@ -178,41 +219,7 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 	std::cout << "申卖价五:" << pDepthMarketData->AskPrice5 << std::endl;
 	std::cout << "申卖量五:" << pDepthMarketData->AskVolume5 << std::endl;
 	std::cout << "================================================================" << std::endl;
-
-	int operation = 0;
-
-	std::cout << "请输入选择的操作（\n0.查询账户；\n1.查询持仓；\n2.下单；）：";
-	std::cin >> operation;
-
-	int result = 0;
-	CThostFtdcQryTradingAccountField tradingAccountField = { 0 };
-	CThostFtdcQryInvestorPositionField investorPositionField = { 0 };
-	CThostFtdcInputOrderField inputOrderField = { 0 };
-
-	switch (operation)
-	{
-	case 0:
-		strcpy_s(tradingAccountField.BrokerID, getConfig("config", "BrokerID").c_str());
-		strcpy_s(tradingAccountField.InvestorID, getConfig("config", "InvestorID").c_str());
-		strcpy_s(tradingAccountField.CurrencyID, "CNY");
-
-		result = pUserTraderApi->ReqQryTradingAccount(&tradingAccountField, requestIndex++);
-
-		break;
-	case 1:
-		strcpy_s(investorPositionField.BrokerID, getConfig("config", "BrokerID").c_str());
-		strcpy_s(investorPositionField.InvestorID, getConfig("config", "InvestorID").c_str());
-
-		result = pUserTraderApi->ReqQryInvestorPosition(&investorPositionField, requestIndex++);
-
-		break;
-	case 2:
-		
-		CThostFtdcInputOrderField inputOrderField = composeInputOrder(pDepthMarketData);
-		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
-
-		break;
-	}
+	beginQuery();
 }
 
 void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTradingAccount, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
@@ -237,6 +244,8 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 	std::cout << "入金金额：" << pTradingAccount->Deposit << endl;
 	std::cout << "出金金额：" << pTradingAccount->Withdraw << endl;
 	std::cout << "================================================================" << std::endl;
+
+	beginQuery();
 }
 
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
