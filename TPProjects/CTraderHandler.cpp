@@ -26,6 +26,53 @@ void CTraderHandler::ReqAuthenticate()
 	std::cout << "客户端认证 = "  << b << endl;
 }
 
+// 构建报单
+CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDepthMarketData) {
+	CThostFtdcInputOrderField inputOrderField;
+	//将某一块内存中的内容全部设置为指定的值，初始化ord
+	memset(&inputOrderField, 0, sizeof(inputOrderField));
+	// 经纪公司代号
+	strcpy_s(inputOrderField.BrokerID, getConfig("config", "BrokerID").c_str());
+	// 投资者代号
+	strcpy_s(inputOrderField.InvestorID, getConfig("config", "InvestorID").c_str());
+	///交易所代码
+	strcpy_s(inputOrderField.ExchangeID, "SHFE");
+	// 合约代号
+	strcpy_s(inputOrderField.InstrumentID, pDepthMarketData->InstrumentID);
+	// 用户代号
+	strcpy_s(inputOrderField.UserID, getConfig("config", "InvestorID").c_str());
+	// 报单引用
+	strcpy_s(inputOrderField.OrderRef, "");
+	///买卖方向
+	inputOrderField.Direction = THOST_FTDC_D_Buy;
+	///组合开平标志
+	inputOrderField.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
+	///组合投机套保标志
+	inputOrderField.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
+	///数量
+	inputOrderField.VolumeTotalOriginal = 1;
+	///成交量类型
+	inputOrderField.VolumeCondition = THOST_FTDC_VC_AV;
+	///最小成交量
+	inputOrderField.MinVolume = 1;
+	///触发条件
+	inputOrderField.ContingentCondition = THOST_FTDC_CC_Immediately;
+	///止损价
+	inputOrderField.StopPrice = 0;
+	///强平原因
+	inputOrderField.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
+	///自动挂起标志
+	inputOrderField.IsAutoSuspend = 0;
+	///价格
+	inputOrderField.LimitPrice = pDepthMarketData->BidPrice1;
+	///报单价格条件
+	inputOrderField.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
+	///有效期类型
+	inputOrderField.TimeCondition = THOST_FTDC_TC_GFD;
+
+	return inputOrderField;
+}
+
 void CTraderHandler::OnFrontConnected()
 {
 	std::cout << "Connect Success......" << endl;
@@ -160,27 +207,8 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 
 		break;
 	case 2:
-		strcpy_s(inputOrderField.BrokerID, getConfig("config", "BrokerID").c_str());
-		strcpy_s(inputOrderField.InvestorID, getConfig("config", "InvestorID").c_str());
-		strcpy_s(inputOrderField.ExchangeID, "SHFE");
-		strcpy_s(inputOrderField.InstrumentID, pDepthMarketData->InstrumentID);
-		strcpy_s(inputOrderField.UserID, getConfig("config", "InvestorID").c_str());
-		strcpy_s(inputOrderField.OrderRef, "");
-		inputOrderField.Direction = THOST_FTDC_D_Buy;
-		inputOrderField.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
-		inputOrderField.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
-		inputOrderField.VolumeTotalOriginal = 1;
-		inputOrderField.VolumeCondition = THOST_FTDC_VC_AV;
-		inputOrderField.MinVolume = 1;
-		inputOrderField.ContingentCondition = THOST_FTDC_CC_Immediately;
-		inputOrderField.StopPrice = 0;
-		inputOrderField.ForceCloseReason = THOST_FTDC_FCC_NotForceClose;
-		inputOrderField.IsAutoSuspend = 0;
 		
-		inputOrderField.LimitPrice = pDepthMarketData->BidPrice1;
-		inputOrderField.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
-		inputOrderField.TimeCondition = THOST_FTDC_TC_GFD;
-
+		CThostFtdcInputOrderField inputOrderField = composeInputOrder(pDepthMarketData);
 		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
 
 		break;
