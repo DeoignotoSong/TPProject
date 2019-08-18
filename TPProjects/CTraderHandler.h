@@ -1,4 +1,6 @@
 #pragma once
+// CThostFtdcTraderSpi 在ThostFtdcTraderApi.h 中定义
+// CTraderHandler 对CThostFtdcTraderSpi 进行继承
 #include "ThostFtdcTraderApi.h"
 #include "getconfig.h"
 #include <string.h>
@@ -13,6 +15,7 @@ public:
 
 	void ReqAuthenticate();
 	void OnFrontConnected();
+	void OnFrontDisconnected(int nReason);
 	void OnRspAuthenticate(
 		CThostFtdcRspAuthenticateField* pRspAuthenticateField, 
 		CThostFtdcRspInfoField* pRspInfo,

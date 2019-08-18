@@ -1,3 +1,5 @@
+// CTraderHandler.h 通过 #include "ThostFtdcTraderApi.h"继承CThostFtdcTraderSpi
+// 因而该类对其CThostFtdcTraderSpi方法进行实现
 #include "CTraderHandler.h"
 
 CTraderHandler::CTraderHandler(CThostFtdcTraderApi* pUserTraderApi) {
@@ -29,6 +31,11 @@ void CTraderHandler::OnFrontConnected()
 	std::cout << "Connect Success......" << endl;
 
 	this->ReqAuthenticate();
+}
+
+void CTraderHandler::OnFrontDisconnected(int nReason)
+{
+	std::cout << "OnFrontDisconnected" << endl;
 }
 
 void CTraderHandler::OnRspAuthenticate(CThostFtdcRspAuthenticateField* pRspAuthenticateField,
