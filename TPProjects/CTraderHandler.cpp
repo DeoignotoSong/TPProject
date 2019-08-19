@@ -122,8 +122,6 @@ void CTraderHandler::OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,
 void CTraderHandler::beginQuery() {
 
 	int operation = 0;
-	// 如果使用while(1)，控制权不会到对应的OnRsp方法上，所以没法打印出来。此处该使用额外线程
-	//while (1) {
 	std::cout << "请输入选择的操作（\n0.查询账户；\n1.查询持仓；\n2.下单；）：";
 	std::cin >> operation;
 
@@ -152,11 +150,12 @@ void CTraderHandler::beginQuery() {
 	case 2:
 
 		CThostFtdcInputOrderField inputOrderField = composeInputOrder(pDepthMarketData);
+		// 周六日调试会报错login失败，导致下单失败
+		// 客户端发出报单录入请求
 		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
 
 		break;
 	}
-	//}
 }
 
 // 请求查询行情响应。当客户端发出请求查询行情指令后，交易托管系统返回响应时，该方法会被调用。
@@ -248,8 +247,11 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 	beginQuery();
 }
 
+// 报单回报。当客户端进行报单录入、报单操作及其它原因（如部分成交）导致报单状态发生变化时，交易托管系统会主动通知客户端，该方法会被调用
+// 而且貌似会被多次调用到
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
+	std::cout << "OnRtnOrder is called" << std::endl;
 	std::cout << "报单成功" << std::endl;
 	std::cout << "================================================================" << std::endl;
 	std::cout << "经纪公司代码：" << pOrder->BrokerID << endl;
@@ -317,9 +319,10 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	std::cout << "Mac地址：" << pOrder->MacAddress << endl;
 	std::cout << "================================================================" << std::endl;
 }
-
+// 成交回报。当发生成交时交易托管系统会通知客户端，该方法会被调用
 void CTraderHandler::OnRtnTrade(CThostFtdcTradeField* pTrade)
 {
+	std::cout << "OnRtnTrade is called" << std::endl;
 	std::cout << "交易成功" << std::endl;
 	std::cout << "================================================================" << std::endl;
 	std::cout << "经纪公司代码：" << pTrade->BrokerID << endl;
@@ -356,9 +359,10 @@ void CTraderHandler::OnRtnTrade(CThostFtdcTradeField* pTrade)
 	std::cout << "================================================================" << std::endl;
 }
 
+// 报单录入应答。 当客户端发出过报单录入指令后， 交易托管系统返回响应时，该方法会被调用
 void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
-	std::cout << "报单错误" << std::endl;
+	std::cout << "OnRspOrderInsert is called" << std::endl;
 	std::cout << "================================================================" << std::endl;
 	if (pRspInfo != nullptr) {
 		std::cout << "错误代码" << pRspInfo->ErrorID << endl;
