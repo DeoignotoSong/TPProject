@@ -58,16 +58,24 @@ int main()
 		cout << "Log directory is already existed." << endl;
 	}
 
+	// 创建Trader实例
 	CThostFtdcTraderApi *m_pApi = CThostFtdcTraderApi::CreateFtdcTraderApi(logFilePath.c_str());
 
+	// 绑定Trader实例
 	CTraderHandler sh(m_pApi);
 
+	// 注册Trader实例
 	m_pApi->RegisterSpi(&sh);
 
+	// 订阅公有流
 	m_pApi->SubscribePrivateTopic(THOST_TERT_QUICK);
+	// 订阅私有流
 	m_pApi->SubscribePublicTopic(THOST_TERT_QUICK);
 
+	// 注册前台
 	m_pApi->RegisterFront((char*)getConfig("config", "FrontAddr").c_str());
+
+	// 获取当前接口版本
 	cout << m_pApi->GetApiVersion() << endl;
 	m_pApi->Init();
 

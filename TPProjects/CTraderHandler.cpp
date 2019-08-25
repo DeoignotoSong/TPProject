@@ -12,6 +12,7 @@ CTraderHandler::~CTraderHandler() {
 	pUserTraderApi->Release();
 }
 
+// 客户端认证
 void CTraderHandler::ReqAuthenticate()
 {
 	CThostFtdcReqAuthenticateField authField = { 0 };
@@ -21,6 +22,8 @@ void CTraderHandler::ReqAuthenticate()
 	strcpy_s(authField.BrokerID, getConfig("config", "BrokerID").c_str());
 	strcpy_s(authField.UserID, getConfig("config", "InvestorID").c_str());
 
+	// 客户端认证
+	// 回调函数：OnRspAuthenticate
 	int b = pUserTraderApi->ReqAuthenticate(&authField, requestIndex++);
 
 	std::cout << "客户端认证 = "  << b << endl;
@@ -76,6 +79,8 @@ CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDep
 void CTraderHandler::OnFrontConnected()
 {
 	std::cout << "Connect Success......" << endl;
+	// API连接成功后，调用客户端认证接口
+	// 客户端认证接口回调函数：OnRspAuthenticate
 	this->ReqAuthenticate();
 }
 
@@ -96,7 +101,9 @@ void CTraderHandler::OnRspAuthenticate(CThostFtdcRspAuthenticateField* pRspAuthe
 	strcpy_s(userField.BrokerID, getConfig("config", "BrokerID").c_str());
 	strcpy_s(userField.UserID, getConfig("config", "InvestorID").c_str());
 	strcpy_s(userField.Password, getConfig("config", "Password").c_str());
-
+	
+	// 客户端认证成功后，用户登录
+	// 用户登录回调函数：OnRspUserLogin
 	int result = pUserTraderApi->ReqUserLogin(&userField, requestIndex++);
 
 	std::cout << result << endl;
@@ -116,6 +123,9 @@ void CTraderHandler::OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,
 	CThostFtdcSettlementInfoConfirmField confirmField = { 0 };
 	strcpy_s(confirmField.BrokerID, getConfig("config", "BrokerID").c_str());
 	strcpy_s(confirmField.InvestorID, getConfig("config", "InvestorID").c_str());
+
+	// 用户登录成功后，结算结果确认，在开始每日交易前，必须要先确认，每日确认一次即可
+	// 结算结果确认回调函数：OnRspSettlementInfoConfirm
 	pUserTraderApi->ReqSettlementInfoConfirm(&confirmField, nRequestID++);
 }
 
@@ -144,6 +154,7 @@ void CTraderHandler::beginQuery() {
 		strcpy_s(investorPositionField.BrokerID, getConfig("config", "BrokerID").c_str());
 		strcpy_s(investorPositionField.InvestorID, getConfig("config", "InvestorID").c_str());
 
+		// 请求查询账户持仓
 		result = pUserTraderApi->ReqQryInvestorPosition(&investorPositionField, requestIndex++);
 
 		break;
@@ -392,6 +403,8 @@ void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmF
 
 	strcpy_s(instrumentField.ExchangeID, "SHFE");
 
+	// 投资者结算结果确认后，查询合约深度行情
+	// 查询合约深度行情回调函数：OnRspQryDepthMarketData
 	int result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, requestIndex++);
 }
 
