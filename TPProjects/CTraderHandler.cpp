@@ -70,7 +70,7 @@ CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDep
 	inputOrderField.LimitPrice = pDepthMarketData->BidPrice1;
 	///报单价格条件
 	inputOrderField.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
-	///有效期类型
+	///有效期类型，用于规定是否为集合竞价
 	inputOrderField.TimeCondition = THOST_FTDC_TC_GFD;
 
 	return inputOrderField;
@@ -406,6 +406,28 @@ void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmF
 	// 投资者结算结果确认后，查询合约深度行情
 	// 查询合约深度行情回调函数：OnRspQryDepthMarketData
 	int result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, requestIndex++);
+}
+
+///请求查询行情
+/**
+0，代表成功。
+-1，表示网络连接失败；
+-2，表示未处理请求超过许可数；
+-3，表示每秒发送请求数超过许可数。
+**/
+int CTraderHandler::ReqQryDepthMarketData(CThostFtdcQryDepthMarketDataField* pQryDepthMarketData, int nRequestID) {
+	std::cout << "into ReqQryDepthMarketData" << std::endl;
+	CThostFtdcQryDepthMarketDataField instrumentField = { 0 };
+
+	strcpy_s(instrumentField.InstrumentID, pQryDepthMarketData->InstrumentID);
+
+	strcpy_s(instrumentField.ExchangeID, "SHFE");
+
+	// 投资者结算结果确认后，查询合约深度行情
+	// 查询合约深度行情回调函数：OnRspQryDepthMarketData
+	int result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, requestIndex++);
+	std::cout << " query resCode:" << result << std::endl;
+	return result;
 }
 
 void CTraderHandler::OnRspQryInvestorPosition(
