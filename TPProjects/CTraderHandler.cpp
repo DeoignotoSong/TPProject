@@ -1,6 +1,7 @@
 // CTraderHandler.h 通过 #include "ThostFtdcTraderApi.h"继承CThostFtdcTraderSpi
 // 因而该类对其CThostFtdcTraderSpi方法进行实现
 #include "CTraderHandler.h"
+#include "FileReader.h"
 
 CTraderHandler::CTraderHandler(CThostFtdcTraderApi* pUserTraderApi) {
 	this->pUserTraderApi = pUserTraderApi;
@@ -30,7 +31,7 @@ void CTraderHandler::ReqAuthenticate()
 }
 
 // 构建报单
-CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDepthMarketData) {
+CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDepthMarketData, string instrumentID) {
 	CThostFtdcInputOrderField inputOrderField;
 	//将某一块内存中的内容全部设置为指定的值，初始化ord
 	memset(&inputOrderField, 0, sizeof(inputOrderField));
@@ -41,7 +42,11 @@ CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDep
 	///交易所代码
 	strcpy_s(inputOrderField.ExchangeID, "SHFE");
 	// 合约代号
-	strcpy_s(inputOrderField.InstrumentID, pDepthMarketData->InstrumentID);
+	TThostFtdcInstrumentIDType type= instrumentID.c_str();
+	// 以下方式就可以，该怎么办。。。
+	//TThostFtdcInstrumentIDType type = "al1909";
+	strcpy_s(inputOrderField.InstrumentID, type);
+	std::cout << "InstrumentID: " << pDepthMarketData->InstrumentID << std::endl;
 	// 用户代号
 	strcpy_s(inputOrderField.UserID, getConfig("config", "InvestorID").c_str());
 	// 报单引用
@@ -129,6 +134,7 @@ void CTraderHandler::OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,
 	pUserTraderApi->ReqSettlementInfoConfirm(&confirmField, nRequestID++);
 }
 
+
 void CTraderHandler::beginQuery() {
 
 	int operation = 0;
@@ -160,13 +166,27 @@ void CTraderHandler::beginQuery() {
 		break;
 	case 2:
 
-		CThostFtdcInputOrderField inputOrderField = composeInputOrder(pDepthMarketData);
-		// 周六日调试会报错login失败，导致下单失败
-		// 客户端发出报单录入请求
-		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
+		vector<string> instrumentIds = loadInstrumentId();
+		while (!instrumentIds.empty()) {
+			string item = instrumentIds.back();
+			// eg. 5,cs1909,3
+			string instrumentId = item.substr(2, item.length - 4);
+			CThostFtdcInputOrderField inputOrderField = composeInputOrder(pDepthMarketData, instrumentId);
+			// 周六日调试会报错login失败，导致下单失败
+			// 客户端发出报单录入请求
+			result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
+			instrumentIds.pop_back();
+		}
+		
 
 		break;
 	}
+}
+
+vector<string> loadInstrumentId() {
+	vector<string> content;
+	bool readSucc = loadFile2Vector("C:\\Users\\11654\\source\\repos\\TPProject\\TPProjects\\resources\\doc1.log", content);
+	return content;
 }
 
 // 请求查询行情响应。当客户端发出请求查询行情指令后，交易托管系统返回响应时，该方法会被调用。
@@ -399,7 +419,7 @@ void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmF
 
 	CThostFtdcQryDepthMarketDataField instrumentField = { 0 };
 
-	strcpy_s(instrumentField.InstrumentID, "ag1912");
+	strcpy_s(instrumentField.InstrumentID, "al1909");
 
 	strcpy_s(instrumentField.ExchangeID, "SHFE");
 

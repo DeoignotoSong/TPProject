@@ -1,0 +1,1 @@
+Q: 为什么config.ini直接通过相对路径读取能成功，而resources/doc1.log 不行，需要指定绝对路径

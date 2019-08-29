@@ -1,5 +1,6 @@
 #pragma  once
 #include "getconfig.h"
+#include "FileReader.h"
 
 /*函数名称：getConfig()
 函数功能：获取配置文件ini中相应大标题title下指定配置字段cfgname的值
@@ -9,6 +10,7 @@
 */
 string getConfig(string title, string cfgName)
 {
+	string curpath = curPath();
 	const char* INIFile = "config.ini";
 	ifstream inifile(INIFile);
 	if (!inifile.is_open())

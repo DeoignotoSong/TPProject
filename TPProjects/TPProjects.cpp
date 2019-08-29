@@ -9,8 +9,7 @@
 #include <Windows.h>
 #include <direct.h>
 #include "getconfig.h"
-#include <thread>
-#include <chrono>
+#include "FileReader.h"
 
 using namespace std;
 
