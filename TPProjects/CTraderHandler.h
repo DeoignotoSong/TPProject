@@ -67,6 +67,8 @@ public:
 		int nRequestID, 
 		bool bIsLast
 	);
+	///请求查询行情
+	int ReqQryDepthMarketData(CThostFtdcQryDepthMarketDataField* pQryDepthMarketData, int nRequestID);
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
