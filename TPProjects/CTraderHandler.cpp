@@ -42,10 +42,7 @@ CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDep
 	///交易所代码
 	strcpy_s(inputOrderField.ExchangeID, "SHFE");
 	// 合约代号
-	TThostFtdcInstrumentIDType type= instrumentID.c_str();
-	// 以下方式就可以，该怎么办。。。
-	//TThostFtdcInstrumentIDType type = "al1909";
-	strcpy_s(inputOrderField.InstrumentID, type);
+	strcpy_s(inputOrderField.InstrumentID, instrumentID.c_str());
 	std::cout << "InstrumentID: " << pDepthMarketData->InstrumentID << std::endl;
 	// 用户代号
 	strcpy_s(inputOrderField.UserID, getConfig("config", "InvestorID").c_str());
@@ -165,27 +162,43 @@ void CTraderHandler::beginQuery() {
 
 		break;
 	case 2:
-
 		vector<string> instrumentIds = loadInstrumentId();
 		while (!instrumentIds.empty()) {
 			string item = instrumentIds.back();
 			// eg. 5,cs1909,3
-			string instrumentId = item.substr(2, item.length - 4);
+			string instrumentId = extractIntrumentId(item);
 			CThostFtdcInputOrderField inputOrderField = composeInputOrder(pDepthMarketData, instrumentId);
 			// 周六日调试会报错login失败，导致下单失败
 			// 客户端发出报单录入请求
 			result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
 			instrumentIds.pop_back();
 		}
-		
-
 		break;
 	}
 }
 
-vector<string> loadInstrumentId() {
+string CTraderHandler::extractIntrumentId(string rawstr) {
+	string spliter = ",";
+	size_t pos = rawstr.find(spliter);
+	size_t last_pos = rawstr.find_last_of(spliter);
+	if (pos == string::npos || pos == last_pos) {
+		cout << "not valid record: " << rawstr << endl;
+		return "";
+	}
+	else {
+		return rawstr.substr(pos + 1, last_pos - pos-1);
+	}
+}
+
+vector<string> CTraderHandler::loadInstrumentId() {
 	vector<string> content;
 	bool readSucc = loadFile2Vector("C:\\Users\\11654\\source\\repos\\TPProject\\TPProjects\\resources\\doc1.log", content);
+	if (!readSucc) {
+		cout << "load Instrument Doc FAILED" << endl;
+	}
+	else {
+		cout << "load Instrument Doc succeed!" << endl;
+	}
 	return content;
 }
 

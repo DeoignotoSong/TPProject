@@ -69,6 +69,8 @@ public:
 	);
 	///请求查询行情
 	int ReqQryDepthMarketData(CThostFtdcQryDepthMarketDataField* pQryDepthMarketData, int nRequestID);
+	vector<string> loadInstrumentId();
+	string extractIntrumentId(string rawstr);
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
