@@ -3,8 +3,10 @@
 // CTraderHandler 对CThostFtdcTraderSpi 进行继承
 #include "ThostFtdcTraderApi.h"
 #include "getconfig.h"
+#include "InstrumentInfo.h"
 #include <string.h>
 #include <iostream>
+#include <map>
 
 using namespace std;
 
@@ -67,12 +69,22 @@ public:
 		int nRequestID, 
 		bool bIsLast
 	);
+
 	///请求查询行情
 	int ReqQryDepthMarketData(CThostFtdcQryDepthMarketDataField* pQryDepthMarketData, int nRequestID);
+	///请求查询行情, 封装接口ReqQryDepthMarketData
+	void queryDepthMarketData(string instrumentId, string exchangeId);
+	// load 需要集合竞价的文件
 	vector<string> loadInstrumentId();
-	string extractIntrumentId(string rawstr);
+	// 对文件内容进行解析
+	string extractInstrumentId(string rawstr);
+	// 开启线程轮询开盘价、对手价
+	//bool startPollThread();
+	// 报单
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
 	int requestIndex;
+	vector<string> allInstruments;
+	map<string, InstrumentInfo> instrumentInfoMap;
 };

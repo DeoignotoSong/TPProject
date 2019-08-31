@@ -155,6 +155,7 @@
     <ClCompile Include="CTraderHandler.cpp" />
     <ClCompile Include="FileReader.cpp" />
     <ClCompile Include="getconfig.cpp" />
+    <ClCompile Include="InstrumentInfo.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="TPProjects.cpp" />
   </ItemGroup>
@@ -163,6 +164,7 @@
     <ClInclude Include="CTraderHandler.h" />
     <ClInclude Include="FileReader.h" />
     <ClInclude Include="getconfig.h" />
+    <ClInclude Include="InstrumentInfo.h" />
     <ClInclude Include="ThostFtdcMdApi.h" />
     <ClInclude Include="ThostFtdcTraderApi.h" />
     <ClInclude Include="ThostFtdcUserApiDataType.h" />
