@@ -6,6 +6,8 @@
 #include "InstrumentInfo.h"
 #include <string.h>
 #include <iostream>
+#include <chrono>    // std::chrono::seconds
+#include <thread>    // std::thread, std::this_thread::sleep_for
 #include <map>
 
 using namespace std;
@@ -79,8 +81,13 @@ public:
 	// 对文件内容进行解析
 	string extractInstrumentId(string rawstr);
 	// 开启线程轮询开盘价、对手价
-	//bool startPollThread();
-	// 报单
+	bool startPollThread();
+	void poll();
+	// 构建order
+	CThostFtdcInputOrderField composeInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price,
+		char timeCondition);
+	// 构建集合竞价order
+	CThostFtdcInputOrderField composeAuctionInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price);
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;

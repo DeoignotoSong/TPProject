@@ -5,7 +5,6 @@
 
 CTraderHandler::CTraderHandler(CThostFtdcTraderApi* pUserTraderApi) {
 	this->pUserTraderApi = pUserTraderApi;
-
 	requestIndex = 0;
 }
 
@@ -30,8 +29,14 @@ void CTraderHandler::ReqAuthenticate()
 	std::cout << "客户端认证 = "  << b << endl;
 }
 
+// 构建集合竞价报单
+CThostFtdcInputOrderField CTraderHandler::composeAuctionInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price) {
+	return composeInputOrder(instrumentID, exchangeID, direction, vol, price, THOST_FTDC_TC_GFD);
+}
+
 // 构建报单
-CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDepthMarketData, string instrumentID) {
+CThostFtdcInputOrderField CTraderHandler::composeInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price,
+	char timeCondition) {
 	CThostFtdcInputOrderField inputOrderField;
 	//将某一块内存中的内容全部设置为指定的值，初始化ord
 	memset(&inputOrderField, 0, sizeof(inputOrderField));
@@ -40,7 +45,7 @@ CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDep
 	// 投资者代号
 	strcpy_s(inputOrderField.InvestorID, getConfig("config", "InvestorID").c_str());
 	///交易所代码
-	strcpy_s(inputOrderField.ExchangeID, "SHFE");
+	strcpy_s(inputOrderField.ExchangeID, exchangeID.c_str());
 	// 合约代号
 	strcpy_s(inputOrderField.InstrumentID, instrumentID.c_str());
 	std::cout << "InstrumentID: " << inputOrderField.InstrumentID << std::endl;
@@ -49,13 +54,18 @@ CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDep
 	// 报单引用
 	strcpy_s(inputOrderField.OrderRef, "");
 	///买卖方向
-	inputOrderField.Direction = THOST_FTDC_D_Buy;
+	if (direction > 0) {
+		inputOrderField.Direction = THOST_FTDC_D_Buy;
+	}
+	else {
+		inputOrderField.Direction = THOST_FTDC_D_Sell;
+	}
 	///组合开平标志
 	inputOrderField.CombOffsetFlag[0] = THOST_FTDC_OF_Open;
 	///组合投机套保标志
 	inputOrderField.CombHedgeFlag[0] = THOST_FTDC_HF_Speculation;
 	///数量
-	inputOrderField.VolumeTotalOriginal = 1;
+	inputOrderField.VolumeTotalOriginal = vol;
 	///成交量类型
 	inputOrderField.VolumeCondition = THOST_FTDC_VC_AV;
 	///最小成交量
@@ -69,11 +79,11 @@ CThostFtdcInputOrderField composeInputOrder(CThostFtdcDepthMarketDataField* pDep
 	///自动挂起标志
 	inputOrderField.IsAutoSuspend = 0;
 	///价格
-	inputOrderField.LimitPrice = pDepthMarketData->BidPrice1;
+	inputOrderField.LimitPrice = price;
 	///报单价格条件
 	inputOrderField.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
 	///有效期类型，用于规定是否为集合竞价
-	inputOrderField.TimeCondition = THOST_FTDC_TC_GFD;
+	inputOrderField.TimeCondition = timeCondition;
 
 	return inputOrderField;
 }
@@ -135,7 +145,7 @@ void CTraderHandler::OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,
 void CTraderHandler::beginQuery() {
 
 	int operation = 0;
-	std::cout << "请输入选择的操作（\n0.查询账户；\n1.查询持仓；\n2.下单；\n3.合约查询样例；）：";
+	std::cout << "请输入选择的操作（\n0.查询账户；\n1.查询持仓；\n2.集合竞价下单；\n3.合约查询样例；）：";
 	std::cin >> operation;
 
 	int result = 0;
@@ -162,7 +172,9 @@ void CTraderHandler::beginQuery() {
 
 		break;
 	case 2:
-		CThostFtdcInputOrderField inputOrderField = composeInputOrder(pDepthMarketData, "cs1909");
+		// 1. loadInstrumentId()，另起一个线程轮询更新得到最近报价
+		// 2. use strategy to generate price
+		CThostFtdcInputOrderField inputOrderField = composeAuctionInputOrder("cs1909","SHFE",1,10,100);
 		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
 		/*
 		vector<string> instrumentIds = loadInstrumentId();
@@ -178,8 +190,31 @@ void CTraderHandler::beginQuery() {
 		*/
 		break;
 	case 3:
-		queryDepthMarketData("al1909", "SHFE");
+		//queryDepthMarketData("al1909", "SHFE");
+		bool ret = startPollThread();
+		cout << "start poll thread result" << ret << endl;
 		break;
+	}
+}
+
+bool CTraderHandler::startPollThread() {
+	try {
+		// 这一行实在看不懂，网上查来的
+
+		thread t(&CTraderHandler::poll,this);
+	}
+	catch (exception ex) {
+		cerr << "start poll thread failed" << endl;
+		return false;
+	}
+	return true;
+}
+
+void CTraderHandler::poll() {
+	while (true) {
+		queryDepthMarketData("al1909", "SHFE");
+		// 固定1s轮询一次
+		this_thread::sleep_for(chrono::seconds(1));
 	}
 }
 
@@ -196,6 +231,7 @@ string CTraderHandler::extractInstrumentId(string rawstr) {
 	}
 }
 
+// TODO: 绝对目录
 vector<string> CTraderHandler::loadInstrumentId() {
 	vector<string> content;
 	bool readSucc = loadFile2Vector("C:\\Users\\11654\\source\\repos\\TPProject\\TPProjects\\resources\\doc1.log", content);
@@ -452,6 +488,8 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField* pSettlementInfoConfirm, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
 	std::cout << "投资者结算结果确认" << std::endl;
+	// 此处报错 abort has been called， 调试中
+	startPollThread();
 	beginQuery();
 }
 
