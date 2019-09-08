@@ -239,10 +239,9 @@ string CTraderHandler::extractInstrumentId(string rawstr) {
 	}
 }
 
-// TODO: 绝对目录
 vector<string> CTraderHandler::loadInstrumentId() {
 	vector<string> content;
-	bool readSucc = loadFile2Vector("C:\\Users\\11654\\source\\repos\\TPProject\\TPProjects\\resources\\doc1.log", content);
+	bool readSucc = loadFile2Vector("doc1.log", content);
 	if (!readSucc) {
 		cout << "load Instrument Doc FAILED" << endl;
 	}
@@ -250,6 +249,16 @@ vector<string> CTraderHandler::loadInstrumentId() {
 		cout << "load Instrument Doc succeed!" << endl;
 	}
 	return content;
+}
+
+void CTraderHandler::fillInstrumentExchangeMap() {
+	vector<string> content;
+	bool readSucc = loadFile2Vector("doc1.log", content);
+	if (!readSucc) {
+		cout << "load Instrument Doc FAILED" << endl;
+	}
+	else {
+	}
 }
 
 // 请求查询行情响应。当客户端发出请求查询行情指令后，交易托管系统返回响应时，该方法会被调用。

@@ -180,9 +180,6 @@
     <Library Include="thostmduserapi_se.lib" />
     <Library Include="thosttraderapi_se.lib" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="resources\doc1.log" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

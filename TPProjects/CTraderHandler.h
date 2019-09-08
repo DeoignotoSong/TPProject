@@ -88,10 +88,13 @@ public:
 		char timeCondition);
 	// 构建集合竞价order
 	CThostFtdcInputOrderField composeAuctionInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price);
+	// 生成合约与交易所的对应关系
+	void fillInstrumentExchangeMap();
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
 	int requestIndex;
 	vector<string> allInstruments;
+	map<string, string> instrumentsExchange;
 	map<string, InstrumentInfo> instrumentInfoMap;
 };
