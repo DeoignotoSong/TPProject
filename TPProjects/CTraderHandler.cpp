@@ -143,7 +143,7 @@ void CTraderHandler::OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,
 
 
 void CTraderHandler::beginQuery() {
-
+	while(true){
 	int operation = 0;
 	std::cout << "请输入选择的操作（\n0.查询账户；\n1.查询持仓；\n2.集合竞价下单；\n3.合约查询样例；）：";
 	std::cin >> operation;
@@ -174,7 +174,7 @@ void CTraderHandler::beginQuery() {
 	case 2:
 		// 1. loadInstrumentId()，另起一个线程轮询更新得到最近报价
 		// 2. use strategy to generate price
-		CThostFtdcInputOrderField inputOrderField = composeAuctionInputOrder("cs1909","SHFE",1,10,100);
+		CThostFtdcInputOrderField inputOrderField = composeAuctionInputOrder("cs1909", "SHFE", 1, 10, 100);
 		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
 		/*
 		vector<string> instrumentIds = loadInstrumentId();
@@ -189,11 +189,17 @@ void CTraderHandler::beginQuery() {
 		}
 		*/
 		break;
+		
+	case 4:
+		cout << "req Idx is " << this->requestIndex << endl;
+		break;
 	case 3:
 		//queryDepthMarketData("al1909", "SHFE");
 		bool ret = startPollThread();
 		cout << "start poll thread result" << ret << endl;
 		break;
+		
+	}
 	}
 }
 
@@ -202,6 +208,8 @@ bool CTraderHandler::startPollThread() {
 		// 这一行实在看不懂，网上查来的
 
 		thread t(&CTraderHandler::poll,this);
+		//t.join();
+		t.detach();
 	}
 	catch (exception ex) {
 		cerr << "start poll thread failed" << endl;
@@ -321,7 +329,7 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 	std::cout << "申卖价五:" << pDepthMarketData->AskPrice5 << std::endl;
 	std::cout << "申卖量五:" << pDepthMarketData->AskVolume5 << std::endl;
 	std::cout << "================================================================" << std::endl;
-	beginQuery();
+	//beginQuery();
 }
 
 void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTradingAccount, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
@@ -347,7 +355,7 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 	std::cout << "出金金额：" << pTradingAccount->Withdraw << endl;
 	std::cout << "================================================================" << std::endl;
 
-	beginQuery();
+	//beginQuery();
 }
 
 // 报单回报。当客户端进行报单录入、报单操作及其它原因（如部分成交）导致报单状态发生变化时，交易托管系统会主动通知客户端，该方法会被调用
@@ -489,7 +497,7 @@ void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmF
 {
 	std::cout << "投资者结算结果确认" << std::endl;
 	// 此处报错 abort has been called， 调试中
-	startPollThread();
+	//startPollThread();
 	beginQuery();
 }
 
