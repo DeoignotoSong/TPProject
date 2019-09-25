@@ -4,6 +4,8 @@
 #include "ThostFtdcTraderApi.h"
 #include "getconfig.h"
 #include "InstrumentInfo.h"
+#include "InstrumentOrderInfo.h"
+#include "Utils.h"
 #include <string.h>
 #include <iostream>
 #include <chrono>    // std::chrono::seconds
@@ -78,8 +80,6 @@ public:
 	void queryDepthMarketData(string instrumentId, string exchangeId);
 	// load 需要集合竞价的文件
 	vector<string> loadInstrumentId();
-	// 对文件内容进行解析
-	string extractInstrumentId(string rawstr);
 	// 开启线程轮询开盘价、对手价
 	bool startPollThread();
 	void poll();
@@ -88,13 +88,21 @@ public:
 		char timeCondition);
 	// 构建集合竞价order
 	CThostFtdcInputOrderField composeAuctionInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price);
-	// 生成合约与交易所的对应关系
-	void fillInstrumentExchangeMap();
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
 	int requestIndex;
+
 	vector<string> allInstruments;
+	// 用于记录 合约号与交易所的对应关系
 	map<string, string> instrumentsExchange;
+	// 记录不同合约的最新信息
 	map<string, InstrumentInfo> instrumentInfoMap;
+	// 记录不同合约的交易信息,<instrumentId,>
+	map<string, InstrumentOrderInfo> instrumentOrderMap;
+	// 记录交易失败的合约单号
+	vector<string> failedInstruments;
+	// 记录交易过程中的合约单号, <reqId,instrument>
+	map<int, string> ongoingInstruments;
+	
 };

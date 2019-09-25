@@ -156,6 +156,7 @@
     <ClCompile Include="FileReader.cpp" />
     <ClCompile Include="getconfig.cpp" />
     <ClCompile Include="InstrumentInfo.cpp" />
+    <ClCompile Include="InstrumentOrderInfo.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="TPProjects.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -166,6 +167,7 @@
     <ClInclude Include="FileReader.h" />
     <ClInclude Include="getconfig.h" />
     <ClInclude Include="InstrumentInfo.h" />
+    <ClInclude Include="InstrumentOrderInfo.h" />
     <ClInclude Include="ThostFtdcMdApi.h" />
     <ClInclude Include="ThostFtdcTraderApi.h" />
     <ClInclude Include="ThostFtdcUserApiDataType.h" />

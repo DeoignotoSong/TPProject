@@ -226,19 +226,6 @@ void CTraderHandler::poll() {
 	}
 }
 
-string CTraderHandler::extractInstrumentId(string rawstr) {
-	string spliter = ",";
-	size_t pos = rawstr.find(spliter);
-	size_t last_pos = rawstr.find_last_of(spliter);
-	if (pos == string::npos || pos == last_pos) {
-		cout << "not valid record: " << rawstr << endl;
-		return "";
-	}
-	else {
-		return rawstr.substr(pos + 1, last_pos - pos-1);
-	}
-}
-
 vector<string> CTraderHandler::loadInstrumentId() {
 	vector<string> content;
 	bool readSucc = loadFile2Vector("doc1.log", content);
@@ -247,18 +234,16 @@ vector<string> CTraderHandler::loadInstrumentId() {
 	}
 	else {
 		cout << "load Instrument Doc succeed!" << endl;
+		// load数据进入内存
+		for (size_t i = 0; i < content.size(); i++)
+		{
+			vector<string> arr = split(content.at(i), ",");
+			allInstruments.push_back(arr.at(1));
+			instrumentsExchange.insert(pair<string, string>(arr.at(1), arr.at(2)));
+			instrumentOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(3))));
+		}
 	}
 	return content;
-}
-
-void CTraderHandler::fillInstrumentExchangeMap() {
-	vector<string> content;
-	bool readSucc = loadFile2Vector("doc1.log", content);
-	if (!readSucc) {
-		cout << "load Instrument Doc FAILED" << endl;
-	}
-	else {
-	}
 }
 
 // 请求查询行情响应。当客户端发出请求查询行情指令后，交易托管系统返回响应时，该方法会被调用。
@@ -505,7 +490,7 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField* pSettlementInfoConfirm, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
 	std::cout << "投资者结算结果确认" << std::endl;
-	// 此处报错 abort has been called， 调试中
+	
 	//startPollThread();
 	beginQuery();
 }

@@ -10,12 +10,13 @@
 #include <direct.h>
 #include "getconfig.h"
 #include "FileReader.h"
-#include "Utils.h"
+# include "InstrumentOrderInfo.h"
 
 using namespace std;
 
 int main()
 { 
+	InstrumentOrderInfo orderInfo = InstrumentOrderInfo("-12");
 	// 保存生成的log文件的文件夹路径
 	string logFilePath = getConfig("config", "LogFilesPath");
 
