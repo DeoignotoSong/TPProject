@@ -13,3 +13,6 @@ void InstrumentInfo::updateInfo(int nRequestID, CThostFtdcDepthMarketDataField* 
 	this->pDepthMarketData = pDepthMarketData;
 	this->requestId = nRequestID;
 }
+CThostFtdcDepthMarketDataField* InstrumentInfo::getInfo() {
+	return this->pDepthMarketData;
+}

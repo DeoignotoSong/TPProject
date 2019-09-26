@@ -11,4 +11,5 @@ public:
 	~InstrumentInfo();
 	bool isLatestInfo(int requestId);
 	void updateInfo(int nRequestID, CThostFtdcDepthMarketDataField* pDepthMarketData);
+	CThostFtdcDepthMarketDataField* getInfo();
 };

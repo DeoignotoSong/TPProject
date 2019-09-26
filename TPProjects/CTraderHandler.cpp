@@ -30,13 +30,13 @@ void CTraderHandler::ReqAuthenticate()
 }
 
 // 构建集合竞价报单
-CThostFtdcInputOrderField CTraderHandler::composeAuctionInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price) {
-	return composeInputOrder(instrumentID, exchangeID, direction, vol, price, THOST_FTDC_TC_GFD);
+CThostFtdcInputOrderField CTraderHandler::composeAuctionInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price, int requestId) {
+	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFD, requestId);
 }
 
 // 构建报单
-CThostFtdcInputOrderField CTraderHandler::composeInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price,
-	char timeCondition) {
+CThostFtdcInputOrderField CTraderHandler::composeInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price,
+	char timeCondition, int requestId) {
 	CThostFtdcInputOrderField inputOrderField;
 	//将某一块内存中的内容全部设置为指定的值，初始化ord
 	memset(&inputOrderField, 0, sizeof(inputOrderField));
@@ -54,7 +54,7 @@ CThostFtdcInputOrderField CTraderHandler::composeInputOrder(string instrumentID,
 	// 报单引用
 	strcpy_s(inputOrderField.OrderRef, "");
 	///买卖方向
-	if (direction > 0) {
+	if (buyIn) {
 		inputOrderField.Direction = THOST_FTDC_D_Buy;
 	}
 	else {
@@ -84,6 +84,7 @@ CThostFtdcInputOrderField CTraderHandler::composeInputOrder(string instrumentID,
 	inputOrderField.OrderPriceType = THOST_FTDC_OPT_LimitPrice;
 	///有效期类型，用于规定是否为集合竞价
 	inputOrderField.TimeCondition = timeCondition;
+	inputOrderField.RequestID = requestId;
 
 	return inputOrderField;
 }
@@ -143,7 +144,6 @@ void CTraderHandler::OnRspUserLogin(CThostFtdcRspUserLoginField* pRspUserLogin,
 
 
 void CTraderHandler::beginQuery() {
-	while(true){
 	int operation = 0;
 	std::cout << "请输入选择的操作（\n0.查询账户；\n1.查询持仓；\n2.集合竞价下单；\n3.合约查询样例；）：";
 	std::cin >> operation;
@@ -174,8 +174,9 @@ void CTraderHandler::beginQuery() {
 	case 2:
 		// 1. loadInstrumentId()，另起一个线程轮询更新得到最近报价
 		// 2. use strategy to generate price
-		CThostFtdcInputOrderField inputOrderField = composeAuctionInputOrder("cs1909", "SHFE", 1, 10, 100);
-		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex++);
+		requestIndex++;
+		CThostFtdcInputOrderField inputOrderField = composeAuctionInputOrder("ag1912", "SHFE", 1, 10, 100,requestIndex);
+		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex);
 		/*
 		vector<string> instrumentIds = loadInstrumentId();
 		while (!instrumentIds.empty()) {
@@ -200,6 +201,21 @@ void CTraderHandler::beginQuery() {
 		break;
 		
 	}
+	
+}
+
+void CTraderHandler::callAuction() {
+	for (auto iter = instrumentOrderMap.begin(); iter != instrumentOrderMap.end(); iter++) {
+		string instrumentId = iter->first;
+		InstrumentOrderInfo orderInfo = iter->second;
+		string exchangeId = instrumentsExchange.find(instrumentId)->second;
+		//  instrumentInfoMap如果没有加载完成，会存在找不到的异常
+		CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentId)->second.getInfo();
+		ongoingInstruments.insert(pair<int, string>(++requestIndex, instrumentId));
+		// 集合竞价的price待定
+		CThostFtdcInputOrderField order = composeAuctionInputOrder(instrumentId, exchangeId, orderInfo.buyOrSell(), orderInfo.getVol(), lastestInfo->OpenPrice, requestIndex);
+		int result = pUserTraderApi->ReqOrderInsert(&order, requestIndex);
+
 	}
 }
 
@@ -226,7 +242,7 @@ void CTraderHandler::poll() {
 	}
 }
 
-vector<string> CTraderHandler::loadInstrumentId() {
+vector<string> CTraderHandler::loadInstruments() {
 	vector<string> content;
 	bool readSucc = loadFile2Vector("doc1.log", content);
 	if (!readSucc) {
@@ -358,6 +374,9 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
 	std::cout << "OnRtnOrder is called" << std::endl;
 	std::cout << "报单成功" << std::endl;
+	// 只需要删除即可
+	ongoingInstruments.erase(pOrder->RequestID);
+	
 	std::cout << "================================================================" << std::endl;
 	std::cout << "经纪公司代码：" << pOrder->BrokerID << endl;
 	std::cout << "投资者代码：" << pOrder->InvestorID << endl;
@@ -472,9 +491,16 @@ void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CT
 	if (pRspInfo != nullptr) {
 		std::cout << "错误代码" << pRspInfo->ErrorID << endl;
 		std::cout << "错误信息" << pRspInfo->ErrorMsg << endl;
+		auto iter = ongoingInstruments.find(nRequestID);
+		// 如果报单失败，将该合约单从ongoing队列移到failed队列，等待后续重试
+		if (iter != ongoingInstruments.end()) {
+			failedInstruments.push_back(iter->second);
+			ongoingInstruments.erase(nRequestID);
+		}
 	}
 	std::cout << "================================================================" << std::endl;
 }
+
 
 void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder, CThostFtdcRspInfoField* pRspInfo)
 {
@@ -483,6 +509,7 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 	if (pRspInfo != nullptr) {
 		std::cout << "错误代码" << pRspInfo->ErrorID << endl;
 		std::cout << "错误信息" << pRspInfo->ErrorMsg << endl;
+
 	}
 	std::cout << "================================================================" << std::endl;
 }
@@ -490,9 +517,27 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField* pSettlementInfoConfirm, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
 	std::cout << "投资者结算结果确认" << std::endl;
-	
-	//startPollThread();
-	beginQuery();
+	loadInstruments();
+	startPollThread();
+	callAuction();
+	callSlippage();
+	//beginQuery();
+}
+
+void CTraderHandler::callSlippage() {
+	while (!failedInstruments.empty()) {
+		string instrumentId = failedInstruments.at(failedInstruments.size()-1);
+		failedInstruments.pop_back();
+		auto iter = instrumentOrderMap.find(instrumentId);
+		InstrumentOrderInfo orderInfo = iter->second;
+		string exchangeId = instrumentsExchange.find(instrumentId)->second;
+		//  instrumentInfoMap如果没有加载完成，会存在找不到的异常
+		CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentId)->second.getInfo();
+		ongoingInstruments.insert(pair<int, string>(++requestIndex, instrumentId));
+		// 滑点订单与集合竞价的区别是？
+		CThostFtdcInputOrderField order = composeAuctionInputOrder(instrumentId, exchangeId, orderInfo.buyOrSell(), orderInfo.getVol(), lastestInfo->OpenPrice, requestIndex);
+		int result = pUserTraderApi->ReqOrderInsert(&order, requestIndex);
+	}
 }
 
 void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId) {

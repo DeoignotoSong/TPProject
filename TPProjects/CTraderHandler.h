@@ -79,15 +79,19 @@ public:
 	///请求查询行情, 封装接口ReqQryDepthMarketData
 	void queryDepthMarketData(string instrumentId, string exchangeId);
 	// load 需要集合竞价的文件
-	vector<string> loadInstrumentId();
+	vector<string> loadInstruments();
 	// 开启线程轮询开盘价、对手价
 	bool startPollThread();
 	void poll();
 	// 构建order
-	CThostFtdcInputOrderField composeInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price,
-		char timeCondition);
+	CThostFtdcInputOrderField composeInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price,
+		char timeCondition, int reqId);
 	// 构建集合竞价order
-	CThostFtdcInputOrderField composeAuctionInputOrder(string instrumentID, string exchangeID, int direction, int vol, double price);
+	CThostFtdcInputOrderField composeAuctionInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price, int reqId);
+	// 集合竞价下单，只执行一次，将instrumentOrderMap中的内容逐一下单
+	void callAuction();
+	// 滑点订单，重复对failedInstruments进行下单
+	void callSlippage();
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
