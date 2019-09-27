@@ -195,9 +195,9 @@ void CTraderHandler::beginQuery() {
 		cout << "req Idx is " << this->requestIndex << endl;
 		break;
 	case 3:
-		//queryDepthMarketData("al1909", "SHFE");
-		bool ret = startPollThread();
-		cout << "start poll thread result" << ret << endl;
+		queryDepthMarketData("ag1912", "SHFE");
+		//bool ret = startPollThread();
+		//cout << "start poll thread result" << ret << endl;
 		break;
 		
 	}
@@ -207,6 +207,11 @@ void CTraderHandler::beginQuery() {
 void CTraderHandler::callAuction() {
 	for (auto iter = instrumentOrderMap.begin(); iter != instrumentOrderMap.end(); iter++) {
 		string instrumentId = iter->first;
+		auto infoIter = instrumentInfoMap.find(instrumentId);
+		if (infoIter == instrumentInfoMap.end()) {
+			// 如果instrumentId不在instrumentInfoMap，说明查询数据失败
+			continue;
+		}
 		InstrumentOrderInfo orderInfo = iter->second;
 		string exchangeId = instrumentsExchange.find(instrumentId)->second;
 		//  instrumentInfoMap如果没有加载完成，会存在找不到的异常
@@ -235,11 +240,9 @@ bool CTraderHandler::startPollThread() {
 }
 
 void CTraderHandler::poll() {
-	while (true) {
-		queryDepthMarketData("al1909", "SHFE");
-		// 固定1s轮询一次
-		this_thread::sleep_for(chrono::seconds(1));
-	}
+	string instrument = allInstruments.at(insQueryId%allInstruments.size());
+	auto iter = instrumentsExchange.find(instrument);
+	queryDepthMarketData(instrument, iter->second);
 }
 
 vector<string> CTraderHandler::loadInstruments() {
@@ -265,8 +268,11 @@ vector<string> CTraderHandler::loadInstruments() {
 // 请求查询行情响应。当客户端发出请求查询行情指令后，交易托管系统返回响应时，该方法会被调用。
 void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDepthMarketData, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
+	
 	this->pDepthMarketData = pDepthMarketData;
-	std::cout << "查询行情响应......" << std::endl;
+	std::cout <<allInstruments.at(insQueryId % allInstruments.size()) << "  行情查询响应......" << std::endl;
+	
+
 	if (pRspInfo != nullptr) {
 		if (pRspInfo != nullptr) {
 			std::cout << "错误ID:" << pRspInfo->ErrorID << std::endl;
@@ -276,27 +282,51 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 			std::cout << "错误消息:" << pRspInfo->ErrorMsg << std::endl;
 		}
 	}
+	if (startPool) {
+		cout << "本次查询属后台轮询查询" << endl;
+	}
 	std::cout << "请求序号:" << nRequestID << std::endl;
-	std::cout << "IsLast:" << bIsLast << std::endl;
-	map<string,InstrumentInfo>::iterator it = instrumentInfoMap.find(pDepthMarketData->InstrumentID);
-	if (it != instrumentInfoMap.end()) {
-		// find one in map
-		InstrumentInfo preInfo = it->second;
-		if (preInfo.isLatestInfo(nRequestID)) {
-			cout << "Already store the lastest info of " << pDepthMarketData->InstrumentID << endl;
+	if (pDepthMarketData != nullptr) {
+		//cout << "success query one" << endl;
+		map<string, InstrumentInfo>::iterator it = instrumentInfoMap.find(pDepthMarketData->InstrumentID);
+		if (it != instrumentInfoMap.end()) {
+			// find one in map
+			InstrumentInfo preInfo = it->second;
+			if (preInfo.isLatestInfo(nRequestID)) {
+				//cout << "Already store the lastest info of " << pDepthMarketData->InstrumentID << endl;
+			}
+			else {
+				preInfo.updateInfo(nRequestID, pDepthMarketData);
+				//cout << "Already update the info of " << pDepthMarketData->InstrumentID << endl;
+			}
 		}
 		else {
-			preInfo.updateInfo(nRequestID, pDepthMarketData);
-			cout<<"Already update the info of " << pDepthMarketData->InstrumentID << endl;
+			// not find
+			InstrumentInfo info(nRequestID, pDepthMarketData);
+			instrumentInfoMap.insert(pair<string, InstrumentInfo>(pDepthMarketData->InstrumentID, info));
+			//cout << "Add the info of " << pDepthMarketData->InstrumentID << endl;
 		}
 	}
-	else {
-		// not find
-		InstrumentInfo info(nRequestID, pDepthMarketData);
-		instrumentInfoMap.insert(pair<string, InstrumentInfo>(pDepthMarketData->InstrumentID, info));
-		cout << "Add the info of " << pDepthMarketData->InstrumentID << endl;
-	}
 	std::cout << "================================================================" << std::endl;
+	
+	insQueryId++;
+	if (startPool) {
+		int i = 0;
+	}
+	if (startPool || insQueryId < allInstruments.size()) {
+		string instrument = allInstruments.at((insQueryId % allInstruments.size()));
+		auto iter = instrumentsExchange.find(instrument);
+		queryDepthMarketData(instrument, iter->second);
+	}
+	if (!startPool && insQueryId == allInstruments.size()) {
+		startPool = true;
+		cout << "===========后台轮询查询开始===========" << endl;
+		startPollThread();
+		cout << "===========集合竞价开始===========" << endl;
+		callAuction();
+	}
+	
+	/**
 	std::cout << "交易日:" << pDepthMarketData->TradingDay << std::endl;
 	std::cout << "合约代码:" << pDepthMarketData->InstrumentID << std::endl;
 	std::cout << "交易所代码:" << pDepthMarketData->ExchangeID << std::endl;
@@ -339,6 +369,7 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 	std::cout << "申卖价五:" << pDepthMarketData->AskPrice5 << std::endl;
 	std::cout << "申卖量五:" << pDepthMarketData->AskVolume5 << std::endl;
 	std::cout << "================================================================" << std::endl;
+	**/
 	//beginQuery();
 }
 
@@ -372,23 +403,29 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 // 而且貌似会被多次调用到
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
+	std::cout << "================================================================" << std::endl;
 	std::cout << "OnRtnOrder is called" << std::endl;
 	std::cout << "报单成功" << std::endl;
 	// 只需要删除即可
 	ongoingInstruments.erase(pOrder->RequestID);
 	
-	std::cout << "================================================================" << std::endl;
+	std::cout << "合约代码：" << pOrder->InstrumentID << endl;
+	std::cout << "买卖方向：" << pOrder->Direction << endl;
+	std::cout << "价格：" << pOrder->LimitPrice << endl;
+	std::cout << "数量：" << pOrder->VolumeTotalOriginal << endl;
+	
+	/*
 	std::cout << "经纪公司代码：" << pOrder->BrokerID << endl;
 	std::cout << "投资者代码：" << pOrder->InvestorID << endl;
-	std::cout << "合约代码：" << pOrder->InstrumentID << endl;
+	
 	std::cout << "报单引用：" << pOrder->OrderRef << endl;
 	std::cout << "用户代码：" << pOrder->UserID << endl;
 	std::cout << "报单价格条件：" << pOrder->OrderPriceType << endl;
-	std::cout << "买卖方向：" << pOrder->Direction << endl;
+	
 	std::cout << "组合开平标志：" << pOrder->CombOffsetFlag << endl;
 	std::cout << "组合投机套保标志：" << pOrder->CombHedgeFlag << endl;
-	std::cout << "价格：" << pOrder->LimitPrice << endl;
-	std::cout << "数量：" << pOrder->VolumeTotalOriginal << endl;
+	
+	
 	std::cout << "有效期类型：" << pOrder->TimeCondition << endl;
 	std::cout << "GTD日期：" << pOrder->GTDDate << endl;
 	std::cout << "成交量类型：" << pOrder->VolumeCondition << endl;
@@ -441,6 +478,7 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	std::cout << "币种代码：" << pOrder->CurrencyID << endl;
 	std::cout << "IP地址：" << pOrder->IPAddress << endl;
 	std::cout << "Mac地址：" << pOrder->MacAddress << endl;
+	*/
 	std::cout << "================================================================" << std::endl;
 }
 // 成交回报。当发生成交时交易托管系统会通知客户端，该方法会被调用
@@ -516,13 +554,17 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 
 void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField* pSettlementInfoConfirm, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
-	std::cout << "投资者结算结果确认" << std::endl;
+	std::cout << "=============加载文件 doc1.log=============" << std::endl;
 	loadInstruments();
-	startPollThread();
-	callAuction();
-	callSlippage();
+	std::cout << "=============开始查询合约信息=============" << std::endl;
+	string instrument = allInstruments.at(0);
+	auto iter = instrumentsExchange.find(instrument);
+	queryDepthMarketData(instrument, iter->second);
+	//callAuction();
+	//callSlippage();
 	//beginQuery();
 }
+
 
 void CTraderHandler::callSlippage() {
 	while (!failedInstruments.empty()) {
@@ -550,7 +592,9 @@ void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId
 	// 投资者结算结果确认后，查询合约深度行情
 	// 查询合约深度行情回调函数：OnRspQryDepthMarketData
 	int result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, requestIndex++);
+	cout << "query ret: " << result << endl;
 }
+
 
 ///请求查询行情
 /**
@@ -560,12 +604,12 @@ void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId
 -3，表示每秒发送请求数超过许可数。
 **/
 int CTraderHandler::ReqQryDepthMarketData(CThostFtdcQryDepthMarketDataField* pQryDepthMarketData, int nRequestID) {
-	std::cout << "into ReqQryDepthMarketData" << std::endl;
+	cout << "into ReqQryDepthMarketData" << endl;
 	CThostFtdcQryDepthMarketDataField instrumentField = { 0 };
 
 	strcpy_s(instrumentField.InstrumentID, pQryDepthMarketData->InstrumentID);
 
-	strcpy_s(instrumentField.ExchangeID, "SHFE");
+	strcpy_s(instrumentField.ExchangeID, pQryDepthMarketData->ExchangeID);
 
 	// 投资者结算结果确认后，查询合约深度行情
 	// 查询合约深度行情回调函数：OnRspQryDepthMarketData

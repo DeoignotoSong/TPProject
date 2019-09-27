@@ -92,15 +92,17 @@ public:
 	void callAuction();
 	// 滑点订单，重复对failedInstruments进行下单
 	void callSlippage();
+	
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
 	int requestIndex;
-
+	int insQueryId;
+	bool startPool = false;
 	vector<string> allInstruments;
 	// 用于记录 合约号与交易所的对应关系
 	map<string, string> instrumentsExchange;
-	// 记录不同合约的最新信息
+	// 记录不同合约的最新信息，仅记录有效合约单号
 	map<string, InstrumentInfo> instrumentInfoMap;
 	// 记录不同合约的交易信息,<instrumentId,>
 	map<string, InstrumentOrderInfo> instrumentOrderMap;
