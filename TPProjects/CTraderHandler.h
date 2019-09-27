@@ -92,6 +92,8 @@ public:
 	void callAuction();
 	// 滑点订单，重复对failedInstruments进行下单
 	void callSlippage();
+	// 判断retOrder是不是滑点下单
+	bool isSlipOrder(CThostFtdcOrderField* order);
 	
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
@@ -99,6 +101,8 @@ private:
 	int requestIndex;
 	int insQueryId;
 	bool startPool = false;
+	bool auctionOverFlag = false;
+	int auctionLastReqId = 0;
 	vector<string> allInstruments;
 	// 用于记录 合约号与交易所的对应关系
 	map<string, string> instrumentsExchange;
@@ -106,9 +110,13 @@ private:
 	map<string, InstrumentInfo> instrumentInfoMap;
 	// 记录不同合约的交易信息,<instrumentId,>
 	map<string, InstrumentOrderInfo> instrumentOrderMap;
-	// 记录交易失败的合约单号
-	vector<string> failedInstruments;
-	// 记录交易过程中的合约单号, <reqId,instrument>
+	
+	// 记录集合竞价交易过程中的合约单号, <reqId,instrument>
 	map<int, string> ongoingInstruments;
+	// 记录交易失败的合约单号，需要滑点下单
+	vector<string> failedInstruments;
+	// 记录滑点下单成功的合约单号
+	map<string, int> bingoSlipInstruments;
+	
 	
 };

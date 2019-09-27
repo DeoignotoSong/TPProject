@@ -399,13 +399,28 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 	//beginQuery();
 }
 
+bool CTraderHandler::isSlipOrder(CThostFtdcOrderField* pOrder) {
+	return auctionOverFlag && pOrder->RequestID > auctionLastReqId;
+}
+
 // 报单回报。当客户端进行报单录入、报单操作及其它原因（如部分成交）导致报单状态发生变化时，交易托管系统会主动通知客户端，该方法会被调用
 // 而且貌似会被多次调用到
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
 	std::cout << "================================================================" << std::endl;
 	std::cout << "OnRtnOrder is called" << std::endl;
-	std::cout << "报单成功" << std::endl;
+	if (isSlipOrder(pOrder)) {
+		std::cout << "滑点报单成功" << std::endl;
+		string instrument = pOrder->InstrumentID;
+		auto it = bingoSlipInstruments.find(instrument);
+		if (it == bingoSlipInstruments.end()) {
+			// 不重复添加
+			bingoSlipInstruments.insert(pair<string, int>(instrument, 1));
+		}
+	}
+	else {
+		std::cout << "集合竞价报单成功" << std::endl;
+	}
 	// 只需要删除即可
 	ongoingInstruments.erase(pOrder->RequestID);
 	
@@ -413,6 +428,16 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	std::cout << "买卖方向：" << pOrder->Direction << endl;
 	std::cout << "价格：" << pOrder->LimitPrice << endl;
 	std::cout << "数量：" << pOrder->VolumeTotalOriginal << endl;
+
+	if (0 == ongoingInstruments.size()) {
+		auctionLastReqId = pOrder->RequestID;
+		cout << "==============集合竞价报单完成==================" << endl;
+		cout << "==============滑点报单开始==================" << endl;
+		if (!auctionOverFlag) {
+			callSlippage();
+		}
+		auctionOverFlag = true;
+	}
 	
 	/*
 	std::cout << "经纪公司代码：" << pOrder->BrokerID << endl;
@@ -560,7 +585,6 @@ void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmF
 	string instrument = allInstruments.at(0);
 	auto iter = instrumentsExchange.find(instrument);
 	queryDepthMarketData(instrument, iter->second);
-	//callAuction();
 	//callSlippage();
 	//beginQuery();
 }
@@ -570,15 +594,21 @@ void CTraderHandler::callSlippage() {
 	while (!failedInstruments.empty()) {
 		string instrumentId = failedInstruments.at(failedInstruments.size()-1);
 		failedInstruments.pop_back();
-		auto iter = instrumentOrderMap.find(instrumentId);
-		InstrumentOrderInfo orderInfo = iter->second;
-		string exchangeId = instrumentsExchange.find(instrumentId)->second;
-		//  instrumentInfoMap如果没有加载完成，会存在找不到的异常
-		CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentId)->second.getInfo();
-		ongoingInstruments.insert(pair<int, string>(++requestIndex, instrumentId));
-		// 滑点订单与集合竞价的区别是？
-		CThostFtdcInputOrderField order = composeAuctionInputOrder(instrumentId, exchangeId, orderInfo.buyOrSell(), orderInfo.getVol(), lastestInfo->OpenPrice, requestIndex);
-		int result = pUserTraderApi->ReqOrderInsert(&order, requestIndex);
+		if (bingoSlipInstruments.find(instrumentId) != bingoSlipInstruments.end()) {
+			// 如果在bingoSlipInstruments中存在，说明已成功
+			continue;
+		}
+		else {
+			auto iter = instrumentOrderMap.find(instrumentId);
+			InstrumentOrderInfo orderInfo = iter->second;
+			string exchangeId = instrumentsExchange.find(instrumentId)->second;
+			//  instrumentInfoMap如果没有加载完成，会存在找不到的异常
+			CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentId)->second.getInfo();
+			ongoingInstruments.insert(pair<int, string>(++requestIndex, instrumentId));
+			// 滑点订单与集合竞价的区别是？
+			CThostFtdcInputOrderField order = composeAuctionInputOrder(instrumentId, exchangeId, orderInfo.buyOrSell(), orderInfo.getVol(), lastestInfo->OpenPrice, requestIndex);
+			int result = pUserTraderApi->ReqOrderInsert(&order, requestIndex);
+		}
 	}
 }
 
@@ -592,7 +622,7 @@ void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId
 	// 投资者结算结果确认后，查询合约深度行情
 	// 查询合约深度行情回调函数：OnRspQryDepthMarketData
 	int result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, requestIndex++);
-	cout << "query ret: " << result << endl;
+	//cout << "query ret: " << result << endl;
 }
 
 
