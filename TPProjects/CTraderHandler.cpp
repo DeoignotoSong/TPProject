@@ -227,7 +227,6 @@ void CTraderHandler::callAuction() {
 bool CTraderHandler::startPollThread() {
 	try {
 		// 这一行实在看不懂，网上查来的
-
 		thread t(&CTraderHandler::poll,this);
 		//t.join();
 		t.detach();
@@ -316,6 +315,8 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 	if (startPool || insQueryId < allInstruments.size()) {
 		string instrument = allInstruments.at((insQueryId % allInstruments.size()));
 		auto iter = instrumentsExchange.find(instrument);
+		// 用于QPS控制
+		std::this_thread::sleep_for(chrono::milliseconds(100));
 		queryDepthMarketData(instrument, iter->second);
 	}
 	if (!startPool && insQueryId == allInstruments.size()) {
