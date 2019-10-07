@@ -75,7 +75,7 @@ public:
 	);
 
 	///请求查询行情
-	int ReqQryDepthMarketData(CThostFtdcQryDepthMarketDataField* pQryDepthMarketData, int nRequestID);
+	//int ReqQryDepthMarketData(CThostFtdcQryDepthMarketDataField* pQryDepthMarketData, int nRequestID);
 	///请求查询行情, 封装接口ReqQryDepthMarketData
 	void queryDepthMarketData(string instrumentId, string exchangeId);
 	// load 需要集合竞价的文件
@@ -94,12 +94,14 @@ public:
 	void callSlippage();
 	// 判断retOrder是不是滑点下单
 	bool isSlipOrder(CThostFtdcOrderField* order);
+	// 通过合约单号获取交易所Id
+	string getExchangeId(string instrumentId);
 	
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
 	int requestIndex;
-	int insQueryId;
+	int insQueryId = 0;
 	bool startPool = false;
 	bool auctionOverFlag = false;
 	int auctionLastReqId = 0;
@@ -110,8 +112,9 @@ private:
 	map<string, InstrumentInfo> instrumentInfoMap;
 	// 记录不同合约的交易信息,<instrumentId,>
 	map<string, InstrumentOrderInfo> instrumentOrderMap;
-	
-	// 记录集合竞价交易过程中的合约单号, <reqId,instrument>
+	// 用于确认每次查询仅处理对应的回调一次
+	map<int, string> onceQueryMarker;
+	// 记录第一次查询及集合竞价交易过程中的合约单号, <reqId,instrument>
 	map<int, string> ongoingInstruments;
 	// 记录交易失败的合约单号，需要滑点下单
 	vector<string> failedInstruments;
