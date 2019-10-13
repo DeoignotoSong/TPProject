@@ -214,23 +214,53 @@ void CTraderHandler::beginQuery() {
 	
 }
 
+void CTraderHandler::queryTrade(string instId, string exgId) {
+	CThostFtdcQryTradeField field = CThostFtdcQryTradeField();
+	strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
+	strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
+	strcpy_s(field.InstrumentID, instId.c_str());
+	strcpy_s(field.ExchangeID, exgId.c_str());
+	// 应该TraderID是required
+	int result = pUserTraderApi->ReqQryTrade(&field, ++requestIndex);
+}
+
 void CTraderHandler::callAuction() {
 	for (auto iter = instrumentOrderMap.begin(); iter != instrumentOrderMap.end(); iter++) {
 		string instrumentId = iter->first;
+		string exchangeId = getExchangeId(instrumentId);
+
 		auto infoIter = instrumentInfoMap.find(instrumentId);
 		if (infoIter == instrumentInfoMap.end()) {
 			// 如果instrumentId不在instrumentInfoMap，说明查询数据失败
 			continue;
 		}
 		InstrumentOrderInfo orderInfo = iter->second;
-		string exchangeId = instrumentsExchange.find(instrumentId)->second;
-		//  instrumentInfoMap如果没有加载完成，会存在找不到的异常
 		CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentId)->second.getInfo();
-		ongoingInstruments.insert(pair<int, string>(++requestIndex, instrumentId));
 		// 集合竞价的price待定
 		CThostFtdcInputOrderField order = composeAuctionInputOrder(instrumentId, exchangeId, orderInfo.buyOrSell(), orderInfo.getVol(), lastestInfo->OpenPrice, requestIndex);
-		int result = pUserTraderApi->ReqOrderInsert(&order, requestIndex);
-
+		int result = pUserTraderApi->ReqOrderInsert(&order, ++requestIndex);
+		/*
+		if (0 == result) {
+			ongoingInstruments.insert(pair<int, string>(requestIndex, instrumentId));
+			continue;
+		}
+		else {
+			int retry = 3;
+			//重试三次
+			while (retry-- >=  0) {
+				if (-1 == result) {
+					cout << "集合竞价下单，网络连接失败" << endl;
+				}
+				//-1,-2,-3 三种情况都等一秒之后重试
+				this_thread::sleep_for(chrono::milliseconds(1000));
+				result = pUserTraderApi->ReqOrderInsert(&order, ++requestIndex);
+				if (0 == result) {
+					ongoingInstruments.insert(pair<int, string>(requestIndex, instrumentId));
+					break;
+				}
+			}
+		}
+		*/
 	}
 }
 
@@ -433,11 +463,66 @@ bool CTraderHandler::isSlipOrder(CThostFtdcOrderField* pOrder) {
 }
 
 // 报单回报。当客户端进行报单录入、报单操作及其它原因（如部分成交）导致报单状态发生变化时，交易托管系统会主动通知客户端，该方法会被调用
-// 而且貌似会被多次调用到
+// insertOrder, order traded, order canceled 均可能回调该函数
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
 	std::cout << "================================================================" << std::endl;
 	std::cout << "OnRtnOrder is called" << std::endl;
+
+	string insId = pOrder->InstrumentID;
+	switch (pOrder->OrderStatus)
+	{
+	case THOST_FTDC_OST_AllTraded: {
+		// 如果 pOrder->InstrumentID 不在bingoIns队列中
+		if (bingoIns.find(insId) == bingoIns.end()) {
+			// 如果存在于toInsertIns队列中
+			if (toInsertIns.find(insId) != toInsertIns.end()) {
+				toInsertIns.erase(toInsertIns.find(insId));
+			}// 如果存在于ongoingIns队列中
+			else if (ongoingIns.find(insId) != ongoingIns.end()) {
+				ongoingIns.erase(ongoingIns.find(insId));
+			}
+			else {
+				cout << insId << " is not existed in toInsertIns, ongoingIns, bingoIns when OnRtnOrder is called and OrderStatus is THOST_FTDC_OST_AllTraded " << endl;
+			}
+			bingoIns.insert(pair<string, int>(insId, 1));
+		}
+		break;
+	}
+	case THOST_FTDC_OST_Canceled: {
+		// 如果 pOrder->InstrumentID 不在cancelledIns队列中，需要从其他队列中移除，然后添入
+		if (cancelledIns.find(insId) == cancelledIns.end()) {
+			if (ongoingIns.find(insId) != ongoingIns.end()) {
+				ongoingIns.erase(ongoingIns.find(insId));
+			}
+			else if (toInsertIns.find(insId) != toInsertIns.end()) {
+				toInsertIns.erase(toInsertIns.find(insId));
+			}
+			else {
+				cout << insId << " is not existed in toInsertIns, ongoingIns, cancelledIns when OnRtnOrder is called and OrderStatus is THOST_FTDC_OST_Canceled " << endl;
+			}
+			cancelledIns.insert(pair<string, int>(insId, 1));
+		}
+		break;
+	}
+	// 猜测以下两个状态是报单成功之后返回的，待验证
+	case THOST_FTDC_OST_NoTradeQueueing:
+	case THOST_FTDC_OST_NoTradeNotQueueing: {
+		if (ongoingIns.find(insId) == ongoingIns.end()) {
+			if (toInsertIns.find(insId) != toInsertIns.end()) {
+				toInsertIns.erase(insId);
+			}
+			else {
+				cout << insId << " is not existed in toInsertIns, ongoingIns when OnRtnOrder is called and OrderStatus is NoTrade " << endl;
+			}
+			ongoingIns.insert(pair<string, CThostFtdcOrderField*>(insId, pOrder));
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	/*
 	if (isSlipOrder(pOrder)) {
 		std::cout << "滑点报单成功" << std::endl;
 		string instrument = pOrder->InstrumentID;
@@ -467,6 +552,7 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 		}
 		auctionOverFlag = true;
 	}
+	*/
 	
 	/*
 	std::cout << "经纪公司代码：" << pOrder->BrokerID << endl;
@@ -539,8 +625,23 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 void CTraderHandler::OnRtnTrade(CThostFtdcTradeField* pTrade)
 {
 	std::cout << "OnRtnTrade is called" << std::endl;
-	std::cout << "交易成功" << std::endl;
 	std::cout << "================================================================" << std::endl;
+	string insId = pTrade->InstrumentID;
+	// 如果 pOrder->InstrumentID 不在bingoIns队列中
+	if (bingoIns.find(insId) == bingoIns.end()) {
+		// 如果存在于toInsertIns队列中
+		if (toInsertIns.find(insId) != toInsertIns.end()) {
+			toInsertIns.erase(toInsertIns.find(insId));
+		}// 如果存在于ongoingIns队列中
+		else if (ongoingIns.find(insId) != ongoingIns.end()) {
+			ongoingIns.erase(ongoingIns.find(insId));
+		}
+		else {
+			cout << insId << " is not existed in toInsertIns, ongoingIns, bingoIns when OnRtnTrade is called " << endl;
+		}
+		bingoIns.insert(pair<string, int>(insId, 1));
+	}
+	/*
 	std::cout << "经纪公司代码：" << pTrade->BrokerID << endl;
 	std::cout << "投资者代码：" << pTrade->InvestorID << endl;
 	std::cout << "合约代码：" << pTrade->InstrumentID << endl;
@@ -572,6 +673,7 @@ void CTraderHandler::OnRtnTrade(CThostFtdcTradeField* pTrade)
 	std::cout << "经纪公司报单编号：" << pTrade->BrokerOrderSeq << endl;
 	std::cout << "成交来源：" << pTrade->TradeSource << endl;
 	std::cout << "投资单元代码：" << pTrade->InvestUnitID << endl;
+	*/
 	std::cout << "================================================================" << std::endl;
 }
 
@@ -579,29 +681,150 @@ void CTraderHandler::OnRtnTrade(CThostFtdcTradeField* pTrade)
 void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
 	std::cout << "OnRspOrderInsert is called" << std::endl;
-	std::cout << "================================================================" << std::endl;
+	std::cout << "================================================================" << std::endl;	
 	if (pRspInfo != nullptr) {
+		std::cout << "OnRspOrderInsert says it's failed" << std::endl;
 		std::cout << "错误代码" << pRspInfo->ErrorID << endl;
 		std::cout << "错误信息" << pRspInfo->ErrorMsg << endl;
-		auto iter = ongoingInstruments.find(nRequestID);
-		// 如果报单失败，将该合约单从ongoing队列移到failed队列，等待后续重试
-		if (iter != ongoingInstruments.end()) {
-			failedInstruments.push_back(iter->second);
-			ongoingInstruments.erase(nRequestID);
+		// 直接从toInsertIns删除
+		auto it = toInsertIns.find(pInputOrder->InstrumentID);
+		if (it != toInsertIns.end()) {
+			toInsertIns.erase(it);
 		}
 	}
+	else if(pInputOrder != nullptr){
+		// 但是结果中未有
+		cout << "OnRspOrderInsert says insert " << pInputOrder->InstrumentID << " order success" << endl;
+	}
+	
 	std::cout << "================================================================" << std::endl;
 }
 
+void CTraderHandler::scanOngoingOrderStatus() {
+	for (map<string, CThostFtdcOrderField*>::iterator it = ongoingIns.begin(); it != ongoingIns.end();) {
+		CThostFtdcQryOrderField field = {0};
+		// 文档注释里说，“不写 BrokerID 可以收全所有报单。” 不懂什么意思
+		strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
+		strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
+		strcpy_s(field.InstrumentID, it->first.c_str());
+		strcpy_s(field.OrderSysID, it->second->OrderSysID);
+		int retry = 3;
+		while (--retry > 0) {
+			int result = pUserTraderApi->ReqQryOrder(&field, ++requestIndex);
+			if (result == -1) {
+				cout << "ReqQryOrder encountered 网络连接失败" << endl;
+				break;
+			}
+			else if (result < 0) {
+				this_thread::sleep_for(chrono::milliseconds(1000));
+			}
+		}
+		// 暂停0.2s 用来控QPS
+		this_thread::sleep_for(chrono::milliseconds(200));
+	}
+}
+
+void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast) {
+	cout << "OnRspQryOrder is called" << endl;
+	if (pRspInfo != nullptr) {
+		std::cout << "错误代码：" << pRspInfo->ErrorID << endl;
+		std::cout << "错误信息：" << pRspInfo->ErrorMsg << endl;
+	}
+	if (pOrder != nullptr) {
+		string insId = pOrder->InstrumentID;
+		// ongoingIns 中合约状态迁移
+		if (ongoingIns.find(insId) != ongoingIns.end()) {
+			
+			// 已成交
+			if(THOST_FTDC_OST_AllTraded == pOrder->OrderStatus) {
+				ongoingIns.erase(ongoingIns.find(insId));
+				bingoIns.insert(pair<string, int>(insId, 1));
+			}// 已撤单
+			else if (THOST_FTDC_OST_Canceled == pOrder->OrderStatus) {
+				ongoingIns.erase(ongoingIns.find(insId));
+				cancelledIns.insert(pair<string, int>(insId, 1));
+			}
+			// 否则手动撤单
+			else {
+				CThostFtdcInputOrderActionField field = {};
+				strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
+				strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
+				strcpy_s(field.OrderSysID, pOrder->OrderSysID);
+				field.ActionFlag = THOST_FTDC_AF_Delete;
+				field.FrontID = pOrder->FrontID;
+				field.SessionID = pOrder->SessionID;
+				strcpy_s(field.OrderRef, pOrder->OrderRef);
+				strcpy_s(field.ExchangeID, pOrder->ExchangeID);
+				int result = 0;
+				int retry = 3;
+				while (retry-- > 0) {
+					result = pUserTraderApi->ReqOrderAction(&field, ++requestIndex);
+					if (0 == result) {
+						break;
+					}
+					if (result < 0) {
+						if (-1 == result) {
+							cout << "call ReqOrderAction 网络连接失败" << endl;
+						}
+						this_thread::sleep_for(chrono::milliseconds(1000));
+					}
+				}
+				// 重试三次，撤单指令发送失败
+				if (result < 0) {
+					cout << "重试三次，撤单 "<<insId<<" 指令发送失败" << endl;
+					// 撤单失败，输出记录，不再继续处理
+					ongoingIns.erase(ongoingIns.find(insId));
+				}
+			}
+
+		}
+	}
+}
+
+/*
+Thost 收到撤单指令，如果没有通过参数校验，拒绝接受撤单指令。用户就会收到
+OnRspOrderAction 消息，其中包含了错误编码和错误消息
+*/
+void CTraderHandler::OnRspOrderAction(CThostFtdcOrderActionField* pOrderAction, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast) {
+	cout << "OnRspOrderAction is called" << endl;
+	if (pRspInfo != nullptr) {
+		cout << "错误代码：" << pRspInfo->ErrorID << endl;
+		cout << "错误信息：" << pRspInfo->ErrorMsg << endl;
+	}
+	if (pOrderAction != nullptr) {
+		string insId = pOrderAction->InstrumentID;
+		// 理论上不会被调到，暂不写处理逻辑
+		cout << insId << endl;
+	}
+}
+
+void CTraderHandler::OnErrRtnOrderAction(
+	CThostFtdcOrderActionField* pOrderAction,
+	CThostFtdcRspInfoField* pRspInfo) {
+	cout << "OnErrRtnOrderAction is called" << endl;
+	if (pRspInfo != nullptr) {
+		cout << "错误代码：" << pRspInfo->ErrorID << endl;
+		cout << "错误信息：" << pRspInfo->ErrorMsg << endl;
+	}
+	if (pOrderAction != nullptr) {
+		string insId = pOrderAction->InstrumentID;
+		// 理论上不会被调到，暂不写处理逻辑
+		cout << insId << endl;
+	}
+}
 
 void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder, CThostFtdcRspInfoField* pRspInfo)
 {
-	std::cout << "报单错误" << std::endl;
+	std::cout << "OnErrRtnOrderInsert is called" << std::endl;
 	std::cout << "================================================================" << std::endl;
 	if (pRspInfo != nullptr) {
 		std::cout << "错误代码" << pRspInfo->ErrorID << endl;
 		std::cout << "错误信息" << pRspInfo->ErrorMsg << endl;
-
+		// 直接从toInsertIns删除
+		auto it = toInsertIns.find(pInputOrder->InstrumentID);
+		if (it != toInsertIns.end()) {
+			toInsertIns.erase(it);
+		}
 	}
 	std::cout << "================================================================" << std::endl;
 }
@@ -617,31 +840,9 @@ void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmF
 	queryDepthMarketData(instrument,getExchangeId(instrument));
 
 	//callSlippage();
-	//beginQuery();
+	beginQuery();
 }
 
-
-void CTraderHandler::callSlippage() {
-	while (!failedInstruments.empty()) {
-		string instrumentId = failedInstruments.at(failedInstruments.size()-1);
-		failedInstruments.pop_back();
-		if (bingoSlipInstruments.find(instrumentId) != bingoSlipInstruments.end()) {
-			// 如果在bingoSlipInstruments中存在，说明已成功
-			continue;
-		}
-		else {
-			auto iter = instrumentOrderMap.find(instrumentId);
-			InstrumentOrderInfo orderInfo = iter->second;
-			string exchangeId = instrumentsExchange.find(instrumentId)->second;
-			//  instrumentInfoMap如果没有加载完成，会存在找不到的异常
-			CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentId)->second.getInfo();
-			ongoingInstruments.insert(pair<int, string>(++requestIndex, instrumentId));
-			// 滑点订单与集合竞价的区别是？
-			CThostFtdcInputOrderField order = composeAuctionInputOrder(instrumentId, exchangeId, orderInfo.buyOrSell(), orderInfo.getVol(), lastestInfo->OpenPrice, requestIndex);
-			int result = pUserTraderApi->ReqOrderInsert(&order, requestIndex);
-		}
-	}
-}
 
 void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId) {
 	cout << "query id: " << instrumentId << endl;
