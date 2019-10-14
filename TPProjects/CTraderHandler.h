@@ -82,12 +82,16 @@ public:
 	vector<string> loadInstruments();
 	// 开启线程轮询开盘价、对手价
 	bool startPollThread();
+	// 开启线程查询订单状态
+	bool startScanThread();
 	void poll();
 	// 构建order
 	CThostFtdcInputOrderField composeInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price,
 		char timeCondition, int reqId);
 	// 构建集合竞价order
 	CThostFtdcInputOrderField composeAuctionInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price, int reqId);
+	// 构建滑点order
+	CThostFtdcInputOrderField composeSlipInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price, int requestId);
 	// 集合竞价下单，只执行一次，将instrumentOrderMap中的内容逐一下单
 	void callAuction();
 	// 判断retOrder是不是滑点下单
@@ -123,6 +127,8 @@ private:
 	int insQueryId = 0;
 	bool startPool = false;
 	bool auctionOverFlag = false;
+	// auctionOver 与 slipStart 之间有时间间隔
+	bool slipStartFlag = false;
 	int auctionLastReqId = 0;
 	vector<string> allInstruments;
 	// 用于记录 合约号与交易所的对应关系
