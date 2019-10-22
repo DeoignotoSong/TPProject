@@ -444,10 +444,10 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 
 void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTradingAccount, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
-	std::cout << "查询交易账户响应......" << std::endl;
+	cout << "查询交易账户响应......" << endl;
 	if (pRspInfo != nullptr) {
 		if (pRspInfo != nullptr) {
-			std::cout << "错误ID:" << pRspInfo->ErrorID << std::endl;
+			cout << "错误ID:" << pRspInfo->ErrorID << endl;
 		}
 
 		if (pRspInfo != nullptr) {
