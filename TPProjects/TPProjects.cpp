@@ -12,6 +12,7 @@
 #include "FileReader.h"
 #include "InstrumentOrderInfo.h"
 #include "Utils.h"
+#include <unordered_map>
 
 using namespace std;
 
@@ -33,10 +34,9 @@ int main()
 		cout << "Log directory is already existed." << endl;
 	}
 
-	getNextStartTime();
 	while (true) {
-		cout << "waiting for the start time" << endl;
-		this_thread::sleep_until(getNextStartTime());
+		cout << "waiting for Auction Start Time" << endl;
+		this_thread::sleep_until(getAuctionStartTime());
 
 		// 创建Trader实例
 		CThostFtdcTraderApi* m_pApi = CThostFtdcTraderApi::CreateFtdcTraderApi(logFilePath.c_str());

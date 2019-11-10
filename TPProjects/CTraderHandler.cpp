@@ -5,7 +5,8 @@
 
 CTraderHandler::CTraderHandler(CThostFtdcTraderApi* pUserTraderApi) {
 	this->pUserTraderApi = pUserTraderApi;
-	requestIndex = 0;
+	queryReqIndex = 0;
+	orderReqIndex = 0;
 }
 
 CTraderHandler::~CTraderHandler() {
@@ -34,19 +35,56 @@ void CTraderHandler::ReqAuthenticate()
 
 	// 客户端认证
 	// 回调函数：OnRspAuthenticate
-	int b = pUserTraderApi->ReqAuthenticate(&authField, requestIndex++);
+	int b = pUserTraderApi->ReqAuthenticate(&authField, orderReqIndex++);
 
 	std::cout << "客户端认证 = "  << b << endl;
 }
 
 // 构建集合竞价报单
-CThostFtdcInputOrderField CTraderHandler::composeAuctionInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price, int requestId) {
+CThostFtdcInputOrderField CTraderHandler::composeAuctionInputOrder(string instrumentID) {
+	InstrumentOrderInfo orderInfo = auctionInsOrderMap.find(instrumentID)->second;
+	CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentID)->second.getInfo();
+
+	string exchangeID = getExchangeId(instrumentID);
+	bool buyIn = orderInfo.buyOrSell();
+	int vol = orderInfo.getVol();
+	double price = lastestInfo->OpenPrice;
+	int requestId = this->orderReqIndex;
 	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFD, requestId);
 }
 
 // 构建滑点报单
-CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumentID, string exchangeID, bool buyIn, int vol, double price, int requestId) {
+CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumentID) {
+	InstrumentOrderInfo orderInfo = slipperyInsOrderMap.find(instrumentID)->second;
+	CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentID)->second.getInfo();
+	
+	string exchangeID = getExchangeId(instrumentID);
+	bool buyIn = orderInfo.buyOrSell();
+	int vol = orderInfo.getVol();
+	double price = choosePrice(lastestInfo);
+	int requestId = this->orderReqIndex;
 	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFD, requestId);
+}
+
+double CTraderHandler::choosePrice(CThostFtdcDepthMarketDataField* latestInfo) {
+	double price = latestInfo->OpenPrice;
+	switch (SlipperyPhase::getPhase()) {
+	case(SlipperyPhase::PHASE_1): {
+		// 开盘价
+			break;
+	}
+	case(SlipperyPhase::PHASE_2): {
+		// 对手价
+		price = latestInfo->BidPrice1;
+		break;
+	}
+	case(SlipperyPhase::PHASE_3): {
+		// 对手价加高
+		price = latestInfo->BidPrice1 + 0.0001;
+		break;
+	}
+	}
+	return price;
 }
 
 // 构建报单
@@ -63,7 +101,6 @@ CThostFtdcInputOrderField CTraderHandler::composeInputOrder(string instrumentID,
 	strcpy_s(inputOrderField.ExchangeID, exchangeID.c_str());
 	// 合约代号
 	strcpy_s(inputOrderField.InstrumentID, instrumentID.c_str());
-	std::cout << "InstrumentID: " << inputOrderField.InstrumentID << std::endl;
 	// 用户代号
 	strcpy_s(inputOrderField.UserID, getConfig("config", "InvestorID").c_str());
 	// 报单引用
@@ -132,7 +169,7 @@ void CTraderHandler::OnRspAuthenticate(CThostFtdcRspAuthenticateField* pRspAuthe
 	
 	// 客户端认证成功后，用户登录
 	// 用户登录回调函数：OnRspUserLogin
-	int result = pUserTraderApi->ReqUserLogin(&userField, requestIndex++);
+	int result = pUserTraderApi->ReqUserLogin(&userField, orderReqIndex++);
 
 	std::cout << result << endl;
 }
@@ -175,7 +212,7 @@ void CTraderHandler::beginQuery() {
 		strcpy_s(tradingAccountField.InvestorID, getConfig("config", "InvestorID").c_str());
 		strcpy_s(tradingAccountField.CurrencyID, "CNY");
 		//请求查询资金账户
-		result = pUserTraderApi->ReqQryTradingAccount(&tradingAccountField, requestIndex++);
+		result = pUserTraderApi->ReqQryTradingAccount(&tradingAccountField, orderReqIndex++);
 
 		break;
 	case 1:
@@ -183,15 +220,15 @@ void CTraderHandler::beginQuery() {
 		strcpy_s(investorPositionField.InvestorID, getConfig("config", "InvestorID").c_str());
 
 		// 请求查询账户持仓
-		result = pUserTraderApi->ReqQryInvestorPosition(&investorPositionField, requestIndex++);
+		result = pUserTraderApi->ReqQryInvestorPosition(&investorPositionField, orderReqIndex++);
 
 		break;
 	case 2:
 		// 1. loadInstrumentId()，另起一个线程轮询更新得到最近报价
 		// 2. use strategy to generate price
-		requestIndex++;
-		CThostFtdcInputOrderField inputOrderField = composeAuctionInputOrder("ag1912", "SHFE", 1, 10, 100,requestIndex);
-		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, requestIndex);
+		orderReqIndex++;
+		CThostFtdcInputOrderField inputOrderField = composeAuctionInputOrder("ag1912");
+		result = pUserTraderApi->ReqOrderInsert(&inputOrderField, orderReqIndex);
 		/*
 		vector<string> instrumentIds = loadInstrumentId();
 		while (!instrumentIds.empty()) {
@@ -222,31 +259,30 @@ void CTraderHandler::queryTrade(string instId, string exgId) {
 	strcpy_s(field.InstrumentID, instId.c_str());
 	strcpy_s(field.ExchangeID, exgId.c_str());
 	// 应该TraderID是required
-	int result = pUserTraderApi->ReqQryTrade(&field, ++requestIndex);
+	int result = pUserTraderApi->ReqQryTrade(&field, ++orderReqIndex);
 }
 
 void CTraderHandler::callAuction() {
-	for (auto iter = instrumentOrderMap.begin(); iter != instrumentOrderMap.end(); iter++) {
+	for (auto iter = auctionInsOrderMap.begin(); iter != auctionInsOrderMap.end(); iter++) {
 		string instrumentId = iter->first;
-		string exchangeId = getExchangeId(instrumentId);
-
-		auto infoIter = instrumentInfoMap.find(instrumentId);
-		if (infoIter == instrumentInfoMap.end()) {
+		if (instrumentInfoMap.find(instrumentId) == instrumentInfoMap.end()) {
 			// 如果instrumentId不在instrumentInfoMap，说明查询数据失败
+			auctionInsStateMap.insert(pair<string, AuctionInsState*>(instrumentId,
+				new AuctionInsState(AuctionInsState::STATE_ENUM::NO_INFO, -1)));
 			continue;
 		}
-		InstrumentOrderInfo orderInfo = iter->second;
-		CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(instrumentId)->second.getInfo();
-		// 集合竞价的price待定
-		CThostFtdcInputOrderField order = composeAuctionInputOrder(instrumentId, exchangeId, orderInfo.buyOrSell(), orderInfo.getVol(), lastestInfo->OpenPrice, requestIndex);
 		int result = 0;
 		int retry = 3;
 		while (retry-->0)
 		{
 			cout << instrumentId << " 集合下单一次" << endl;
-			result = pUserTraderApi->ReqOrderInsert(&order, ++requestIndex);
+			++orderReqIndex;
+			// 集合竞价的price待定
+			CThostFtdcInputOrderField order = composeAuctionInputOrder(instrumentId);
+			result = pUserTraderApi->ReqOrderInsert(&order, orderReqIndex);
 			if (0 == result) {
-				toInsertIns.insert(pair<string, int>(instrumentId, 1));
+				auctionInsStateMap.insert(pair<string, AuctionInsState*>(instrumentId,
+					new AuctionInsState(AuctionInsState::STATE_ENUM::STARTED, orderReqIndex)));
 				break;
 			}
 			else {
@@ -262,6 +298,75 @@ void CTraderHandler::callAuction() {
 		}
 		this_thread::sleep_for(chrono::milliseconds(200));
 	}
+	// 记录最后一条集合竞价请求ID
+	auctionLastReqId = orderReqIndex;
+}
+
+// 该方法会在新线程 startScanThread 中被调用
+void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
+	chrono::system_clock::time_point tp;
+	switch (phase){
+	case(SlipperyPhase::PHASE_1): {
+		tp = getSlipPhaseAStartTime();
+		break;
+	}
+	case(SlipperyPhase::PHASE_2): {
+		tp = getSlipPhaseBStartTime();
+		break;
+	}
+	default: {
+		// 该function只处理滑点下单的前两阶段
+		return;
+	}
+	}
+	this_thread::sleep_until(tp);
+	// 记录当前处于何阶段
+	curPhase = phase;
+	for (auto iter = slipperyInsOrderMap.begin(); iter != slipperyInsOrderMap.end(); iter++) {
+		string instrumentId = iter->first;
+		if (instrumentInfoMap.find(instrumentId) == instrumentInfoMap.end()) {
+			// 如果instrumentId不在instrumentInfoMap，说明查询数据失败
+			slipperyInsStateMap[instrumentId] = new SlipperyInsState(SlipperyInsState::STATE_ENUM::NO_INFO, -1);
+			continue;
+		}
+		// 第二阶段，只对未成交的部分合约处理
+		if (phase == SlipperyPhase::PHASE_2) {
+			auto pair = slipperyInsStateMap.find(instrumentId);
+			if (pair == slipperyInsStateMap.end()
+				|| pair->second->getState() != SlipperyInsState::UNTRADED) {
+				continue;
+			}
+		}
+		submitSlipperyOrder(instrumentId);
+	}
+}
+
+void CTraderHandler::submitSlipperyOrder(string instrumentId) {
+	int result = 0;
+	int retry = 3;
+	while (retry-- > 0)
+	{
+		cout << instrumentId << " 第二部分下单一次" << endl;
+		++orderReqIndex;
+		CThostFtdcInputOrderField order = composeSlipInputOrder(instrumentId);
+		result = pUserTraderApi->ReqOrderInsert(&order, orderReqIndex);
+		if (0 == result) {
+			slipperyInsStateMap[instrumentId] = 
+				new SlipperyInsState(SlipperyInsState::STATE_ENUM::STARTED, orderReqIndex);
+			break;
+		}
+		else {
+			if (-1 == result) {
+				cout << "第二部分下单，网络连接失败" << endl;
+			}
+			//-1,-2,-3 三种情况都等一秒之后重试
+			this_thread::sleep_for(chrono::milliseconds(1000));
+		}
+	}
+	if (result < 0) {
+		cout << instrumentId << " 第二部分下单失败" << endl;
+	}
+	this_thread::sleep_for(chrono::milliseconds(200));
 }
 
 bool CTraderHandler::startPollThread() {
@@ -272,7 +377,7 @@ bool CTraderHandler::startPollThread() {
 		t.detach();
 	}
 	catch (exception ex) {
-		cerr << "start poll thread failed" << endl;
+		cerr << "startPollThread failed" << endl;
 		return false;
 	}
 	return true;
@@ -281,15 +386,83 @@ bool CTraderHandler::startPollThread() {
 bool CTraderHandler::startScanThread() {
 	try {
 		// 这一行实在看不懂，网上查来的
-		thread t(&CTraderHandler::scanOngoingOrderStatus, this);
+		thread t(&CTraderHandler::scanSlipperyOrderState, this);
 		//t.join();
 		t.detach();
 	}
 	catch (exception ex) {
-		cerr << "start poll thread failed" << endl;
+		cerr << "startScanThread failed" << endl;
 		return false;
 	}
 	return true;
+}
+
+bool CTraderHandler::startSlipPhaseAThread() {
+	try {
+		// 这一行实在看不懂，网上查来的
+		thread t(&CTraderHandler::callSlippery, this, SlipperyPhase::PHASE_1);
+		//t.join();
+		t.detach();
+	}
+	catch (exception ex) {
+		cerr << "startScanThread failed" << endl;
+		return false;
+	}
+	return true;
+}
+
+bool CTraderHandler::startSlipPhaseBThread() {
+	try {
+		// 这一行实在看不懂，网上查来的
+		thread t(&CTraderHandler::callSlippery, this, SlipperyPhase::PHASE_2);
+		//t.join();
+		t.detach();
+	}
+	catch (exception ex) {
+		cerr << "startScanThread failed" << endl;
+		return false;
+	}
+	return true;
+}
+
+bool CTraderHandler::startSlipPhaseCThread() {
+	try {
+		// 这一行实在看不懂，网上查来的
+		thread t(&CTraderHandler::slipPhaseCEntrance, this);
+		//t.join();
+		t.detach();
+	}
+	catch (exception ex) {
+		cerr << "startScanThread failed" << endl;
+		return false;
+	}
+	return true;
+}
+void CTraderHandler::slipPhaseCEntrance() {
+	this_thread::sleep_until(getSlipPhaseCStartTime());
+	curPhase = SlipperyPhase::PHASE_3;
+	slipPhaseCProcess();
+}
+void CTraderHandler::slipPhaseCProcess() {
+	bool orderSubmit = false;
+	for (auto state = slipperyInsStateMap.begin(); state != slipperyInsStateMap.end(); state++) {
+		// 暂未match的报单, 撤回
+		if (state->second->getState() == SlipperyInsState::ORDERED) {
+			cancelInstrument(state->first);
+			orderSubmit = true;
+			break;
+		}//已撤回和确定未成单的报单，再下单
+		else if (state->second->getState() == SlipperyInsState::RETRIVED
+			|| state->second->getState() == SlipperyInsState::UNTRADED) {
+			submitSlipperyOrder(state->first);
+			orderSubmit = true;
+			break;
+		}
+	}
+	// 如果没有合约需要改变，该线程关闭
+	if (!orderSubmit) {
+		terminate();
+	}
 }
 
 void CTraderHandler::poll() {
@@ -300,19 +473,38 @@ void CTraderHandler::poll() {
 
 vector<string> CTraderHandler::loadInstruments() {
 	vector<string> content;
+	// load doc1.log into auctionInsOrderMap. doc1存储集合竞价的合约单
 	bool readSucc = loadFile2Vector("doc1.log", content);
 	if (!readSucc) {
-		cout << "load Instrument Doc FAILED" << endl;
+		cout << "load doc1.log FAILED" << endl;
 	}
 	else {
-		cout << "load Instrument Doc succeed!" << endl;
+		cout << "load doc1.log succeed!" << endl;
 		// load数据进入内存
 		for (size_t i = 0; i < content.size(); i++)
 		{
 			vector<string> arr = split(content.at(i), ",");
 			allInstruments.push_back(arr.at(1));
-			instrumentsExchange.insert(pair<string, string>(arr.at(1), arr.at(2)));
-			instrumentOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(3))));
+			instrumentsExchange[arr.at(1)] = arr.at(2);
+			auctionInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(3))));
+		}
+	}
+
+	content.clear();
+	// load doc2.log into slipperyInsOrderMap. doc2存储集合竞价的合约单
+	readSucc = loadFile2Vector("doc2.log", content);
+	if (!readSucc) {
+		cout << "load doc2.log FAILED" << endl;
+	}
+	else {
+		cout << "load doc2.log succeed!" << endl;
+		// load数据进入内存
+		for (size_t i = 0; i < content.size(); i++)
+		{
+			vector<string> arr = split(content.at(i), ",");
+			allInstruments.push_back(arr.at(1));
+			instrumentsExchange[arr.at(1)] = arr.at(2);
+			slipperyInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(3))));
 		}
 	}
 	return content;
@@ -330,18 +522,16 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 		if (pRspInfo != nullptr) {
 			std::cout << "错误消息:" << pRspInfo->ErrorMsg << std::endl;
 		}
+		return;
 	}
-	std::cout << "请求序号:" << nRequestID << std::endl;
+	std::cout << "OnRspQryDepthMarketData ReqId:" << nRequestID << std::endl;
 	if (pDepthMarketData != nullptr) {
 		cout << pDepthMarketData->InstrumentID << "查询行情响应" << endl;
-		map<string, InstrumentInfo>::iterator it = instrumentInfoMap.find(pDepthMarketData->InstrumentID);
+		auto it = instrumentInfoMap.find(pDepthMarketData->InstrumentID);
 		if (it != instrumentInfoMap.end()) {
 			// find one in map
 			InstrumentInfo preInfo = it->second;
-			if (preInfo.isLatestInfo(nRequestID)) {
-				//cout << "Already store the lastest info of " << pDepthMarketData->InstrumentID << endl;
-			}
-			else {
+			if (!preInfo.isLatestInfo(nRequestID)) {
 				preInfo.updateInfo(nRequestID, pDepthMarketData);
 				//cout << "Update the info of " << pDepthMarketData->InstrumentID << endl;
 			}
@@ -374,8 +564,12 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 				startPool = true;
 				cout << "首轮询价完毕\n===========后台轮询查询开始===========" << endl;
 				startPollThread();
+				this_thread::sleep_until(getAuctionStartTime());
 				cout << "===========集合竞价开始===========" << endl;
 				callAuction();
+				startSlipPhaseAThread();
+				startSlipPhaseBThread();
+				startSlipPhaseCThread();
 			}
 		}
 	}// 后台查询
@@ -391,54 +585,9 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 			string instrument = allInstruments.at((insQueryId % allInstruments.size()));
 			// 用于QPS控制
 			std::this_thread::sleep_for(chrono::milliseconds(500));
-			 queryDepthMarketData(instrument, getExchangeId(instrument));
+			queryDepthMarketData(instrument, getExchangeId(instrument));
 		}
 	}
-	
-	/**
-	std::cout << "交易日:" << pDepthMarketData->TradingDay << std::endl;
-	std::cout << "合约代码:" << pDepthMarketData->InstrumentID << std::endl;
-	std::cout << "交易所代码:" << pDepthMarketData->ExchangeID << std::endl;
-	std::cout << "合约在交易所的代码:" << pDepthMarketData->ExchangeInstID << std::endl;
-	std::cout << "最新价:" << pDepthMarketData->LastPrice << std::endl;
-	std::cout << "上次结算价:" << pDepthMarketData->PreSettlementPrice << std::endl;
-	std::cout << "昨收盘:" << pDepthMarketData->PreClosePrice << std::endl;
-	std::cout << "昨持仓量:" << pDepthMarketData->PreOpenInterest << std::endl;
-	std::cout << "今开盘:" << pDepthMarketData->OpenPrice << std::endl;
-	std::cout << "最高价:" << pDepthMarketData->HighestPrice << std::endl;
-	std::cout << "最低价:" << pDepthMarketData->LowestPrice << std::endl;
-	std::cout << "数量:" << pDepthMarketData->Volume << std::endl;
-	std::cout << "成交金额:" << pDepthMarketData->Turnover << std::endl;
-	std::cout << "持仓量:" << pDepthMarketData->OpenInterest << std::endl;
-	std::cout << "今收盘:" << pDepthMarketData->ClosePrice << std::endl;
-	std::cout << "本次结算价:" << pDepthMarketData->SettlementPrice << std::endl;
-	std::cout << "涨停板价:" << pDepthMarketData->UpperLimitPrice << std::endl;
-	std::cout << "跌停板价:" << pDepthMarketData->LowerLimitPrice << std::endl;
-	std::cout << "昨虚实度:" << pDepthMarketData->PreDelta << std::endl;
-	std::cout << "今虚实度:" << pDepthMarketData->CurrDelta << std::endl;
-	std::cout << "最后修改时间:" << pDepthMarketData->UpdateTime << std::endl;
-	std::cout << "申买价一:" << pDepthMarketData->BidPrice1 << std::endl;
-	std::cout << "申买量一:" << pDepthMarketData->BidVolume1 << std::endl;
-	std::cout << "申卖价一:" << pDepthMarketData->AskPrice1 << std::endl;
-	std::cout << "申卖量一:" << pDepthMarketData->AskVolume1 << std::endl;
-	std::cout << "申买价二:" << pDepthMarketData->BidPrice2 << std::endl;
-	std::cout << "申买量二:" << pDepthMarketData->BidVolume2 << std::endl;
-	std::cout << "申卖价二:" << pDepthMarketData->AskPrice2 << std::endl;
-	std::cout << "申卖量二:" << pDepthMarketData->AskVolume2 << std::endl;
-	std::cout << "申买价三:" << pDepthMarketData->BidPrice3 << std::endl;
-	std::cout << "申买量三:" << pDepthMarketData->BidVolume3 << std::endl;
-	std::cout << "申卖价三:" << pDepthMarketData->AskPrice3 << std::endl;
-	std::cout << "申卖量三:" << pDepthMarketData->AskVolume3 << std::endl;
-	std::cout << "申买价四:" << pDepthMarketData->BidPrice4 << std::endl;
-	std::cout << "申买量四:" << pDepthMarketData->BidVolume4 << std::endl;
-	std::cout << "申卖价四:" << pDepthMarketData->AskPrice4 << std::endl;
-	std::cout << "申卖量四:" << pDepthMarketData->AskVolume4 << std::endl;
-	std::cout << "申买价五:" << pDepthMarketData->BidPrice5 << std::endl;
-	std::cout << "申买量五:" << pDepthMarketData->BidVolume5 << std::endl;
-	std::cout << "申卖价五:" << pDepthMarketData->AskPrice5 << std::endl;
-	std::cout << "申卖量五:" << pDepthMarketData->AskVolume5 << std::endl;
-	std::cout << "================================================================" << std::endl;
-	**/
 	//beginQuery();
 }
 
@@ -468,10 +617,6 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 	//beginQuery();
 }
 
-bool CTraderHandler::isSlipOrder(CThostFtdcOrderField* pOrder) {
-	return auctionOverFlag && pOrder->RequestID > auctionLastReqId;
-}
-
 // 报单回报。当客户端进行报单录入、报单操作及其它原因（如部分成交）导致报单状态发生变化时，交易托管系统会主动通知客户端，该方法会被调用
 // insertOrder, order traded, order canceled 均可能回调该函数
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
@@ -488,258 +633,102 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	// 验证发现报单后第一次回调：pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertSubmitted, pOrder->OrderStatus == THOST_FTDC_OST_Unknown
 	// 判断方法待明确
 	if (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertSubmitted) {
-		if (ongoingIns.find(insId) == ongoingIns.end()) {
-			if (toInsertIns.find(insId) != toInsertIns.end()) {
-				toInsertIns.erase(insId);
+		if (pOrder->RequestID <= auctionLastReqId) {// 集合竞价订单回调
+			// auctionInsStateMap中存在
+			if (auctionInsStateMap.find(insId) != auctionInsStateMap.end()) {
+				auto insState = auctionInsStateMap.find(insId)->second;
+				if (insState->getLatestReqId() == pOrder->RequestID // 回调对应的reqId == 最新状态的reqId
+					&& insState->getState() == AuctionInsState::STATE_ENUM::STARTED)  // 要求最近一次状态是UNSTARTED
+				{ // 更新auctionInsStateMap中的state 和 respId
+					insState->updateOnResp(AuctionInsState::STATE_ENUM::ORDERED, pOrder->RequestID);
+				}
 			}
 			else {
-				cout << insId << " is not existed in toInsertIns, ongoingIns when OnRtnOrder is called and OrderSubmitStatus is THOST_FTDC_OSS_InsertSubmitted " << endl;
+				// NOT POSSIBLE
+				auctionInsStateMap.insert(pair<string, AuctionInsState*>(insId,
+					new AuctionInsState(AuctionInsState::STATE_ENUM::ORDERED, pOrder->RequestID)));
 			}
-			cout << insId << " 报单成功" << endl;
-			ongoingIns.insert(pair<string, CThostFtdcOrderField*>(insId, pOrder));
+		}// 滑点订单回调
+		else{
+			slipperyRtnOrderMap[insId] = pOrder;
+			//slipperyInsStateMap中存在
+			if (slipperyInsStateMap.find(insId) != slipperyInsStateMap.end()) {
+				auto insState = slipperyInsStateMap.find(insId)->second;
+				if (insState->getLatestReqId() == pOrder->RequestID // 回调对应的reqId == 最新状态的reqId
+					&& (insState->getState() == SlipperyInsState::STATE_ENUM::STARTED
+						|| insState->getState() == SlipperyInsState::STATE_ENUM::RETRIVED))  // 要求最近一次状态是UNSTARTED或者RETRIVED
+				{ // 更新slipperyInsStateMap中的state 和 respId
+					insState->updateOnResp(SlipperyInsState::STATE_ENUM::ORDERED, pOrder->RequestID);
+				}
+			}
+			else {
+				// NOT POSSIBLE
+				slipperyInsStateMap.insert(pair<string, SlipperyInsState*>(insId,
+					new SlipperyInsState(SlipperyInsState::STATE_ENUM::ORDERED, pOrder->RequestID)));
+			}
 		}
-		if (0 == toInsertIns.size() && !auctionOverFlag) {
+
+/*
+		if (0 == auctionIns.size() && !auctionOverFlag) {
 			cout << "集合竞价阶段报单完成" << endl;
 			auctionOverFlag = true;
 			// 集合竞价之后需要等待一段时间
-			this_thread::sleep_for(chrono::milliseconds(1000));
+			this_thread::sleep_until(getSlipPhaseAStartTime());
 			cout << "开始扫描合约状态" << endl;
-			scanOngoingOrderStatus();
+			scanSlipperyOrderState();
 			slipStartFlag = true;
 		}
+		*/
 	}
 
 	// 撤单成功
 	// 报单自动撤销后回调发现：pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertRejected, pOrder->OrderStatus == THOST_FTDC_OST_Canceled
 	// 判断方法待明确
 	else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled) {
-		// 如果 pOrder->InstrumentID 不在cancelledIns队列中，需要从其他队列中移除，然后添入
-		if (cancelledIns.find(insId) == cancelledIns.end()) {
-			if (ongoingIns.find(insId) != ongoingIns.end()) {
-				ongoingIns.erase(ongoingIns.find(insId));
+		if (pOrder->RequestID <= auctionLastReqId) { // 判断该回调对应的req是集合竞价下单
+			if (auctionInsStateMap.find(pOrder->InstrumentID) != auctionInsStateMap.end()) {
+				auto insState = auctionInsStateMap.find(pOrder->InstrumentID)->second;
+				insState->updateOnResp(AuctionInsState::STATE_ENUM::CANCELED , pOrder->RequestID);
 			}
-			else if (toInsertIns.find(insId) != toInsertIns.end()) {
-				toInsertIns.erase(toInsertIns.find(insId));
+		}// 滑点订单回调
+		else {
+			actionIfSlipperyCanceled(insId, pOrder->RequestID);
+			//  如果处于第二部分报单的第三阶段，call slipPhaseCProcess，继续检查slipperyInsStateMap其它合约
+			if (curPhase == SlipperyPhase::PHASE_3) {
+				slipPhaseCProcess();
 			}
-			else {
-				cout << insId << " is not existed in toInsertIns, ongoingIns, cancelledIns when OnRtnOrder is called and OrderStatus is THOST_FTDC_OST_Canceled " << endl;
-			}
-			cout << insId << " 已撤单" << endl;
-			cancelledIns.insert(pair<string, int>(insId, 1));
-		}
-		if (slipStartFlag) {
-			string exchangeId = getExchangeId(insId);
-
-			auto infoIter = instrumentInfoMap.find(insId);
-			if (infoIter == instrumentInfoMap.end()) {
-				// 如果instrumentId不在instrumentInfoMap，说明查询数据失败
-				cout << insId << " 在instrumentInfoMap 中不存在" << endl;
-			}
-			InstrumentOrderInfo orderInfo = instrumentOrderMap.find(insId)->second;
-			CThostFtdcDepthMarketDataField* lastestInfo = instrumentInfoMap.find(insId)->second.getInfo();
-			// 滑点的price待定
-			CThostFtdcInputOrderField order = composeSlipInputOrder(insId, exchangeId, orderInfo.buyOrSell(), orderInfo.getVol(), lastestInfo->OpenPrice, requestIndex);
-			int result = 0;
-			int retry = 3;
-			while (retry-- > 0)
-			{
-				cout << insId << " 滑点下单一次" << endl;
-				result = pUserTraderApi->ReqOrderInsert(&order, ++requestIndex);
-				if (0 == result) {
-					toInsertIns.insert(pair<string, int>(insId, 1));
-					break;
-				}
-				else {
-					if (-1 == result) {
-						cout << "滑点下单，网络连接失败" << endl;
-					}
-					//-1,-2,-3 三种情况都等一秒之后重试
-					this_thread::sleep_for(chrono::milliseconds(1000));
-				}
-			}
-			if (result < 0) {
-				cout << insId << " 滑点下单失败" << endl;
-				toInsertIns.insert(pair<string, int>(insId, 1));
-			}
-			this_thread::sleep_for(chrono::milliseconds(200));
-			cancelledIns.erase(insId);
 		}
 	}
 	// 合约单成交
 	// 看代码解释，未验证
 	else if(pOrder->OrderStatus == THOST_FTDC_OST_AllTraded){
-		// 如果 pOrder->InstrumentID 不在bingoIns队列中
-		if (bingoIns.find(insId) == bingoIns.end()) {
-			// 如果存在于toInsertIns队列中
-			if (toInsertIns.find(insId) != toInsertIns.end()) {
-				toInsertIns.erase(toInsertIns.find(insId));
-			}// 如果存在于ongoingIns队列中
-			else if (ongoingIns.find(insId) != ongoingIns.end()) {
-				ongoingIns.erase(ongoingIns.find(insId));
+		if (pOrder->RequestID <= auctionLastReqId) { // 集合竞价下单回调
+			if (auctionInsStateMap.find(pOrder->InstrumentID) != auctionInsStateMap.end()) {
+				auto insState = auctionInsStateMap.find(pOrder->InstrumentID)->second;
+				insState->updateOnResp(AuctionInsState::STATE_ENUM::DONE, pOrder->RequestID);
 			}
 			else {
-				cout << insId << " is not existed in toInsertIns, ongoingIns, bingoIns when OnRtnOrder is called and OrderStatus is THOST_FTDC_OST_AllTraded " << endl;
+				// NOT POSSIBLE
+				auctionInsStateMap.insert(pair<string, AuctionInsState*>(insId,
+					new AuctionInsState(AuctionInsState::STATE_ENUM::DONE, pOrder->RequestID)));
 			}
-			bingoIns.insert(pair<string, int>(insId, 1));
-			cout << insId << " 已成交" << endl;
+		}
+		else{// 滑点订单回调
+			actionIfSlipperyTraded(insId, pOrder->RequestID);
+			//  如果处于第二部分报单的第三阶段，call slipPhaseCProcess，继续检查slipperyInsStateMap其它合约
+			if (curPhase == SlipperyPhase::PHASE_3) {
+				slipPhaseCProcess();
+			}
 		}
 	}
-
 	return;
-
-	/*
-	if (isSlipOrder(pOrder)) {
-		std::cout << "滑点报单成功" << std::endl;
-		string instrument = pOrder->InstrumentID;
-		auto it = bingoSlipInstruments.find(instrument);
-		if (it == bingoSlipInstruments.end()) {
-			// 不重复添加
-			bingoSlipInstruments.insert(pair<string, int>(instrument, 1));
-		}
-	}
-	else {
-		std::cout << "集合竞价报单成功" << std::endl;
-	}
-	// 只需要删除即可
-	ongoingInstruments.erase(pOrder->RequestID);
-	
-	std::cout << "合约代码：" << pOrder->InstrumentID << endl;
-	std::cout << "买卖方向：" << pOrder->Direction << endl;
-	std::cout << "价格：" << pOrder->LimitPrice << endl;
-	std::cout << "数量：" << pOrder->VolumeTotalOriginal << endl;
-
-	if (0 == ongoingInstruments.size()) {
-		auctionLastReqId = pOrder->RequestID;
-		cout << "==============集合竞价报单完成==================" << endl;
-		cout << "==============滑点报单开始==================" << endl;
-		if (!auctionOverFlag) {
-			callSlippage();
-		}
-		auctionOverFlag = true;
-	}
-	*/
-	
-	/*
-	std::cout << "经纪公司代码：" << pOrder->BrokerID << endl;
-	std::cout << "投资者代码：" << pOrder->InvestorID << endl;
-	
-	std::cout << "报单引用：" << pOrder->OrderRef << endl;
-	std::cout << "用户代码：" << pOrder->UserID << endl;
-	std::cout << "报单价格条件：" << pOrder->OrderPriceType << endl;
-	
-	std::cout << "组合开平标志：" << pOrder->CombOffsetFlag << endl;
-	std::cout << "组合投机套保标志：" << pOrder->CombHedgeFlag << endl;
-	
-	
-	std::cout << "有效期类型：" << pOrder->TimeCondition << endl;
-	std::cout << "GTD日期：" << pOrder->GTDDate << endl;
-	std::cout << "成交量类型：" << pOrder->VolumeCondition << endl;
-	std::cout << "最小成交量：" << pOrder->MinVolume << endl;
-	std::cout << "触发条件：" << pOrder->ContingentCondition << endl;
-	std::cout << "止损价：" << pOrder->StopPrice << endl;
-	std::cout << "强平原因：" << pOrder->ForceCloseReason << endl;
-	std::cout << "自动挂起标志：" << pOrder->IsAutoSuspend << endl;
-	std::cout << "业务单元：" << pOrder->BusinessUnit << endl;
-	std::cout << "请求编号：" << pOrder->RequestID << endl;
-	std::cout << "本地报单编号：" << pOrder->OrderLocalID << endl;
-	std::cout << "交易所代码：" << pOrder->ExchangeID << endl;
-	std::cout << "会员代码：" << pOrder->ParticipantID << endl;
-	std::cout << "客户代码：" << pOrder->ClientID << endl;
-	std::cout << "合约在交易所的代码：" << pOrder->ExchangeInstID << endl;
-	std::cout << "交易所交易员代码：" << pOrder->TraderID << endl;
-	std::cout << "安装编号：" << pOrder->InstallID << endl;
-	std::cout << "报单提交状态：" << pOrder->OrderSubmitStatus << endl;
-	std::cout << "报单提示序号：" << pOrder->NotifySequence << endl;
-	std::cout << "交易日：" << pOrder->TradingDay << endl;
-	std::cout << "结算编号：" << pOrder->SettlementID << endl;
-	std::cout << "报单编号：" << pOrder->OrderSysID << endl;
-	std::cout << "报单来源：" << pOrder->OrderSource << endl;
-	std::cout << "报单状态：" << pOrder->OrderStatus << endl;
-	std::cout << "报单类型：" << pOrder->OrderType << endl;
-	std::cout << "今成交数量：" << pOrder->VolumeTraded << endl;
-	std::cout << "剩余数量：" << pOrder->VolumeTotal << endl;
-	std::cout << "报单日期：" << pOrder->InsertDate << endl;
-	std::cout << "委托时间：" << pOrder->InsertTime << endl;
-	std::cout << "激活时间：" << pOrder->ActiveTime << endl;
-	std::cout << "挂起时间：" << pOrder->SuspendTime << endl;
-	std::cout << "最后修改时间：" << pOrder->UpdateTime << endl;
-	std::cout << "撤销时间：" << pOrder->CancelTime << endl;
-	std::cout << "最后修改交易所交易员代码：" << pOrder->ActiveTraderID << endl;
-	std::cout << "结算会员编号：" << pOrder->ClearingPartID << endl;
-	std::cout << "序号：" << pOrder->SequenceNo << endl;
-	std::cout << "前置编号：" << pOrder->FrontID << endl;
-	std::cout << "会话编号：" << pOrder->SessionID << endl;
-	std::cout << "用户端产品信息：" << pOrder->UserProductInfo << endl;
-	std::cout << "状态信息：" << pOrder->StatusMsg << endl;
-	std::cout << "用户强评标志：" << pOrder->UserForceClose << endl;
-	std::cout << "操作用户代码：" << pOrder->ActiveUserID << endl;
-	std::cout << "经纪公司报单编号：" << pOrder->BrokerOrderSeq << endl;
-	std::cout << "相关报单：" << pOrder->RelativeOrderSysID << endl;
-	std::cout << "郑商所成交数量：" << pOrder->ZCETotalTradedVolume << endl;
-	std::cout << "互换单标志：" << pOrder->IsSwapOrder << endl;
-	std::cout << "营业部编号：" << pOrder->BranchID << endl;
-	std::cout << "投资单元代码：" << pOrder->InvestUnitID << endl;
-	std::cout << "资金账号：" << pOrder->AccountID << endl;
-	std::cout << "币种代码：" << pOrder->CurrencyID << endl;
-	std::cout << "IP地址：" << pOrder->IPAddress << endl;
-	std::cout << "Mac地址：" << pOrder->MacAddress << endl;
-	*/
-	std::cout << "================================================================" << std::endl;
 }
 // 成交回报。当发生成交时交易托管系统会通知客户端，该方法会被调用
+// 个人认为，该方法被调用到时，OnRtnOrder也会被调用到，所以该方法中不做实现
 void CTraderHandler::OnRtnTrade(CThostFtdcTradeField* pTrade)
 {
 	cout << "================================================================" << std::endl;
 	cout << "OnRtnTrade is called" << std::endl;
-	string insId = pTrade->InstrumentID;
-	// 如果 pOrder->InstrumentID 不在bingoIns队列中
-	if (bingoIns.find(insId) == bingoIns.end()) {
-		// 如果存在于toInsertIns队列中
-		if (toInsertIns.find(insId) != toInsertIns.end()) {
-			toInsertIns.erase(toInsertIns.find(insId));
-		}// 如果存在于ongoingIns队列中
-		else if (ongoingIns.find(insId) != ongoingIns.end()) {
-			ongoingIns.erase(ongoingIns.find(insId));
-		}
-		else {
-			cout << insId << " is not existed in toInsertIns, ongoingIns, bingoIns when OnRtnTrade is called " << endl;
-		}
-		bingoIns.insert(pair<string, int>(insId, 1));
-		cout << insId << " 已成交" << endl;
-	}
-	/*
-	std::cout << "经纪公司代码：" << pTrade->BrokerID << endl;
-	std::cout << "投资者代码：" << pTrade->InvestorID << endl;
-	std::cout << "合约代码：" << pTrade->InstrumentID << endl;
-	std::cout << "报单引用：" << pTrade->OrderRef << endl;
-	std::cout << "用户代码：" << pTrade->UserID << endl;
-	std::cout << "交易所代码：" << pTrade->ExchangeID << endl;
-	std::cout << "成交编号：" << pTrade->TradeID << endl;
-	std::cout << "买卖方向：" << pTrade->Direction << endl;
-	std::cout << "报单编号：" << pTrade->OrderSysID << endl;
-	std::cout << "会员代码：" << pTrade->ParticipantID << endl;
-	std::cout << "客户代码：" << pTrade->ClientID << endl;
-	std::cout << "交易角色：" << pTrade->TradingRole << endl;
-	std::cout << "合约在交易所的代码：" << pTrade->ExchangeInstID << endl;
-	std::cout << "开平标志：" << pTrade->OffsetFlag << endl;
-	std::cout << "投机套保标志：" << pTrade->HedgeFlag << endl;
-	std::cout << "价格：" << pTrade->Price << endl;
-	std::cout << "数量：" << pTrade->Volume << endl;
-	std::cout << "成交时期：" << pTrade->TradeDate << endl;
-	std::cout << "成交时间：" << pTrade->TradeTime << endl;
-	std::cout << "成交类型：" << pTrade->TradeType << endl;
-	std::cout << "成交价来源：" << pTrade->PriceSource << endl;
-	std::cout << "交易所交易员代码：" << pTrade->TraderID << endl;
-	std::cout << "本地报单编号：" << pTrade->OrderLocalID << endl;
-	std::cout << "结算会员编号：" << pTrade->ClearingPartID << endl;
-	std::cout << "业务单元：" << pTrade->BusinessUnit << endl;
-	std::cout << "序号：" << pTrade->SequenceNo << endl;
-	std::cout << "交易日：" << pTrade->TradingDay << endl;
-	std::cout << "结算编号：" << pTrade->SettlementID << endl;
-	std::cout << "经纪公司报单编号：" << pTrade->BrokerOrderSeq << endl;
-	std::cout << "成交来源：" << pTrade->TradeSource << endl;
-	std::cout << "投资单元代码：" << pTrade->InvestUnitID << endl;
-	*/
 	std::cout << "================================================================" << std::endl;
 }
 
@@ -752,32 +741,49 @@ void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CT
 		std::cout << "OnRspOrderInsert says it's failed" << std::endl;
 		std::cout << "错误代码" << pRspInfo->ErrorID << endl;
 		std::cout << "错误信息" << pRspInfo->ErrorMsg << endl;
-		// 直接从toInsertIns删除
-		auto it = toInsertIns.find(pInputOrder->InstrumentID);
-		if (it != toInsertIns.end()) {
-			toInsertIns.erase(it);
-		}
 	}
 	else if(pInputOrder != nullptr){
 		// 但是结果中未有
 		cout << "OnRspOrderInsert says insert " << pInputOrder->InstrumentID << " order success" << endl;
+
 	}
 	
 	std::cout << "================================================================" << std::endl;
 }
 
-void CTraderHandler::scanOngoingOrderStatus() {
-	for (map<string, CThostFtdcOrderField*>::iterator it = ongoingIns.begin(); it != ongoingIns.end(); it++) {
-		CThostFtdcQryOrderField field = {0};
+void CTraderHandler::scanSlipperyOrderState() {
+	bool needScan = false;
+	string insId;
+	for (auto it = slipperyInsStateMap.begin(); it != slipperyInsStateMap.end(); it++) {
+		if (it->second->getState() != SlipperyInsState::STARTED
+			&& it->second->getState() != SlipperyInsState::ORDERED
+			&& it->second->getState() != SlipperyInsState::RETRIVED) {//仅三状态需要scan
+			continue;
+		}
+		else { //只需要找到一个需要scan的合约就进行Query，等待回调函数中再call该函数
+			needScan = true;
+			insId = it->first;
+			break;
+		}
+	}
+	// 如果needScan == false, 意味着slipperyInsStateMap中所有的合约处于NO_INFO, ORDER_FAILED, DONE状态
+	// 已完成第二部分报单任务, 该线程可结束
+	if (!needScan) {
+		terminate();
+	}// 如果needScan == true，意味着仍有合约需要scan
+	else
+	{
+		CThostFtdcOrderField* order = slipperyRtnOrderMap.find(insId)->second;
+		CThostFtdcQryOrderField field = { 0 };
 		// 文档注释里说，“不写 BrokerID 可以收全所有报单。” 不懂什么意思
 		strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
 		strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
-		strcpy_s(field.InstrumentID, it->first.c_str());
-		strcpy_s(field.OrderSysID, it->second->OrderSysID);
+		strcpy_s(field.InstrumentID, insId.c_str());
+		strcpy_s(field.OrderSysID, order->OrderSysID);
 		int result = 0;
 		int retry = 3;
 		while (--retry > 0) {
-			result = pUserTraderApi->ReqQryOrder(&field, ++requestIndex);
+			result = pUserTraderApi->ReqQryOrder(&field, ++orderReqIndex);
 			if (0 == result) {
 				break;
 			}
@@ -790,13 +796,72 @@ void CTraderHandler::scanOngoingOrderStatus() {
 		}
 		// 此处经常result=-2，表示未处理请求超过许可数
 		if (result < 0) {
-			cout << it->first << " 订单状态查询失败, result = "<<result << endl;
+			cout << insId << " 订单状态查询失败, result = " << result << endl;
 		}
 		// 暂停0.2s 用来控QPS
 		this_thread::sleep_for(chrono::milliseconds(200));
 	}
 }
 
+void CTraderHandler::actionIfSlipperyTraded(string instrumentId, int reqId) {
+	if (slipperyInsStateMap.find(instrumentId) != slipperyInsStateMap.end()) {
+		auto insState = slipperyInsStateMap.find(instrumentId)->second;
+		// Traded是某一合约的终态，不需要check之前的状态
+		insState->updateOnResp(SlipperyInsState::STATE_ENUM::DONE, reqId);
+	}
+	else {
+		// NOT POSSIBLE
+		slipperyInsStateMap.insert(pair<string, SlipperyInsState*>(instrumentId,
+			new SlipperyInsState(SlipperyInsState::STATE_ENUM::DONE, reqId)));
+	}
+	slipperyFinishedIns[instrumentId] = 1;
+}
+
+void CTraderHandler::actionIfSlipperyCanceled(string instrumentId, int reqId) {
+	if (slipperyInsStateMap.find(instrumentId) != slipperyInsStateMap.end()) {
+		auto insState = slipperyInsStateMap.find(instrumentId)->second;
+		if (insState->getLatestReqId() == reqId // 回调对应的reqId == 最新状态的reqId
+			&& (insState->getState() == SlipperyInsState::STATE_ENUM::STARTED
+				|| insState->getState() == SlipperyInsState::STATE_ENUM::ORDERED))  // 要求最近一次状态是UNSTARTED或者ORDERED
+		{ // 更新slipperyInsStateMap中的state 和 respId
+			insState->updateOnResp(SlipperyInsState::STATE_ENUM::RETRIVED, reqId);
+		}
+	}
+}
+
+void CTraderHandler::cancelInstrument(string instrumentId) {
+	auto pOrder = slipperyRtnOrderMap.find(instrumentId)->second;
+	CThostFtdcInputOrderActionField field = {};
+	strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
+	strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
+	strcpy_s(field.OrderSysID, pOrder->OrderSysID);
+	field.ActionFlag = THOST_FTDC_AF_Delete;
+	field.FrontID = pOrder->FrontID;
+	field.SessionID = pOrder->SessionID;
+	strcpy_s(field.OrderRef, pOrder->OrderRef);
+	strcpy_s(field.ExchangeID, pOrder->ExchangeID);
+	int result = 0;
+	int retry = 3;
+	while (retry-- > 0) {
+		result = pUserTraderApi->ReqOrderAction(&field, ++orderReqIndex);
+		if (0 == result) {
+			break;
+		}
+		if (result < 0) {
+			if (-1 == result) {
+				cout << "call ReqOrderAction 网络连接失败" << endl;
+			}
+			this_thread::sleep_for(chrono::milliseconds(1000));
+		}
+	}
+	// 重试三次，撤单指令发送失败
+	if (result < 0) {
+		cout << "重试三次，撤单 " << instrumentId << " 指令发送失败" << endl;
+	}
+}
+
+// 仅针对滑点订单，会发起报单查询
+// 报单查询请求。当客户端发出报单查询指令后，交易托管系统返回响应时，该方法会被调用
 void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast) {
 	cout << "OnRspQryOrder is called" << endl;
 	if (pRspInfo != nullptr) {
@@ -805,53 +870,20 @@ void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspIn
 	}
 	if (pOrder != nullptr) {
 		string insId = pOrder->InstrumentID;
-		// ongoingIns 中合约状态迁移
-		if (ongoingIns.find(insId) != ongoingIns.end()) {
-			
-			// 已成交
-			if(THOST_FTDC_OST_AllTraded == pOrder->OrderStatus) {
-				ongoingIns.erase(ongoingIns.find(insId));
-				bingoIns.insert(pair<string, int>(insId, 1));
-			}// 已撤单
-			else if (THOST_FTDC_OST_Canceled == pOrder->OrderStatus) {
-				ongoingIns.erase(ongoingIns.find(insId));
-				cancelledIns.insert(pair<string, int>(insId, 1));
-			}
-			// 否则手动撤单
-			else {
-				CThostFtdcInputOrderActionField field = {};
-				strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
-				strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
-				strcpy_s(field.OrderSysID, pOrder->OrderSysID);
-				field.ActionFlag = THOST_FTDC_AF_Delete;
-				field.FrontID = pOrder->FrontID;
-				field.SessionID = pOrder->SessionID;
-				strcpy_s(field.OrderRef, pOrder->OrderRef);
-				strcpy_s(field.ExchangeID, pOrder->ExchangeID);
-				int result = 0;
-				int retry = 3;
-				while (retry-- > 0) {
-					result = pUserTraderApi->ReqOrderAction(&field, ++requestIndex);
-					if (0 == result) {
-						break;
-					}
-					if (result < 0) {
-						if (-1 == result) {
-							cout << "call ReqOrderAction 网络连接失败" << endl;
-						}
-						this_thread::sleep_for(chrono::milliseconds(1000));
-					}
-				}
-				// 重试三次，撤单指令发送失败
-				if (result < 0) {
-					cout << "重试三次，撤单 "<<insId<<" 指令发送失败" << endl;
-					// 撤单失败，输出记录，不再继续处理
-					ongoingIns.erase(ongoingIns.find(insId));
-				}
-			}
-
+		// 已成交
+		if (THOST_FTDC_OST_AllTraded == pOrder->OrderStatus) {
+			actionIfSlipperyTraded(insId, pOrder->RequestID);
+		}// 已撤单
+		else if (THOST_FTDC_OST_Canceled == pOrder->OrderStatus) {
+			actionIfSlipperyCanceled(insId, pOrder->RequestID);
+		}
+		// 否则记录订单信息，用于撤单
+		else {
+			slipperyRtnOrderMap[pOrder->InstrumentID] = pOrder;
 		}
 	}
+	//再次scan, 直到所有报单状态到达终态
+	scanSlipperyOrderState();
 }
 
 /*
@@ -893,10 +925,29 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 	if (pRspInfo != nullptr) {
 		std::cout << "错误代码" << pRspInfo->ErrorID << endl;
 		std::cout << "错误信息" << pRspInfo->ErrorMsg << endl;
-		// 直接从toInsertIns删除
-		auto it = toInsertIns.find(pInputOrder->InstrumentID);
-		if (it != toInsertIns.end()) {
-			toInsertIns.erase(it);
+	}
+	if (pInputOrder != nullptr) {
+		string insId = pInputOrder->InstrumentID;
+		int reqId = pInputOrder->RequestID;
+		if (reqId <= auctionLastReqId) { //集合竞价下单失败
+			if (auctionInsStateMap.find(insId) != auctionInsStateMap.end()) {
+				auto state = auctionInsStateMap.find(insId)->second;
+				state->updateOnResp(AuctionInsState::ORDER_FAILED, reqId);
+			}
+			else {
+				// NOT POSSIBLE
+				auctionInsStateMap[insId] = new AuctionInsState(AuctionInsState::ORDER_FAILED, reqId);
+			}
+		}
+		else {
+			if (slipperyInsStateMap.find(insId) != slipperyInsStateMap.end()) {
+				auto state = slipperyInsStateMap.find(insId)->second;
+				state->updateOnResp(SlipperyInsState::ORDER_FAILED, reqId);
+			}
+			else {
+				// NOT POSSIBLE
+				slipperyInsStateMap[insId] = new SlipperyInsState(SlipperyInsState::ORDER_FAILED, reqId);
+			}
 		}
 	}
 	std::cout << "================================================================" << std::endl;
@@ -904,7 +955,7 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 
 void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField* pSettlementInfoConfirm, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
-	std::cout << "=============加载文件 doc1.log=============" << std::endl;
+	std::cout << "=============加载文件 doc1.log & doc2.log =============" << std::endl;
 	loadInstruments();
 	std::cout << "=============开始查询合约信息=============" << std::endl;
 
@@ -927,10 +978,10 @@ void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId
 
 	// 投资者结算结果确认后，查询合约深度行情
 	// 查询合约深度行情回调函数：OnRspQryDepthMarketData
-	int result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, ++requestIndex);
+	int result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, ++queryReqIndex);
 	if (0 == result) {
 		// 发送查询成功
-		onceQueryMarker.insert(pair<int, string>(requestIndex, instrumentId));
+		onceQueryMarker.insert(pair<int, string>(orderReqIndex, instrumentId));
 		return;
 	}
 	else {

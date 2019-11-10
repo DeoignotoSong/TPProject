@@ -4,7 +4,7 @@
 class InstrumentInfo
 {
 private:
-	int requestId;
+	int queryReqId;
 	CThostFtdcDepthMarketDataField* pDepthMarketData;
 public:
 	InstrumentInfo(int nRequestID, CThostFtdcDepthMarketDataField* pDepthMarketData);
