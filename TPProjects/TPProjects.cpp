@@ -13,11 +13,22 @@
 #include "InstrumentOrderInfo.h"
 #include "Utils.h"
 #include <unordered_map>
+// https://github.com/amrayn/easyloggingpp#getting-started
+#include "easylogging++.h"
 
 using namespace std;
+// Please note that INITIALIZE_EASYLOGGINGPP should be used once and once-only,
+// otherwise you will end up getting compilation errors.
+INITIALIZE_EASYLOGGINGPP
 
 int main()
 {
+	// Load configuration from file
+	el::Configurations conf("logging.conf");
+	// Actually reconfigure all loggers instead
+	el::Loggers::reconfigureAllLoggers(conf);
+	LOG(INFO) << "My first info log using default logger" ;
+	LOG(INFO) << "My second info log using default logger" << "again";
 	// 保存生成的log文件的文件夹路径
 	string logFilePath = getConfig("config", "LogFilesPath");
 
@@ -36,7 +47,7 @@ int main()
 
 	while (true) {
 		cout << "waiting for Auction Start Time" << endl;
-		this_thread::sleep_until(getAuctionStartTime());
+		//this_thread::sleep_until(getAuctionStartTime());
 
 		// 创建Trader实例
 		CThostFtdcTraderApi* m_pApi = CThostFtdcTraderApi::CreateFtdcTraderApi(logFilePath.c_str());

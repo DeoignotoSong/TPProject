@@ -15,6 +15,7 @@
 #include <thread>    // std::thread, std::this_thread::sleep_for
 #include <map>
 #include <unordered_map>
+#include "easylogging++.h"
 
 using namespace std;
 

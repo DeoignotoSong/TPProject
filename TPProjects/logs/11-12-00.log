@@ -1,0 +1,790 @@
+2019-11-12 00:03:58,240746 [INFO] [TPProjects.cpp: 30] My first info log using default logger
+2019-11-12 00:03:58,241745 [INFO] [TPProjects.cpp: 31] My second info log using default loggeragain
+2019-11-12 00:04:03,746083 [INFO] [CTraderHandler.cpp: 146] Connect Success......
+
+2019-11-12 00:04:03,752078 [INFO] [CTraderHandler.cpp: 40] 客户端认证 = 0
+
+2019-11-12 00:04:03,822038 [INFO] [CTraderHandler.cpp: 162] Authenticate success......
+
+2019-11-12 00:04:04,129863 [INFO] [CTraderHandler.cpp: 174] 0
+
+2019-11-12 00:04:04,163843 [INFO] [CTraderHandler.cpp: 182] Login success......
+
+2019-11-12 00:04:04,165842 [INFO] [CTraderHandler.cpp: 186] Trading Day: 20191112
+
+2019-11-12 00:04:04,203819 [INFO] [CTraderHandler.cpp: 958] =============加载文件 doc1.log & doc2.log =============
+
+2019-11-12 00:04:04,207817 [INFO] [CTraderHandler.cpp: 482] load doc1.log succeed!
+
+2019-11-12 00:04:04,209817 [INFO] [CTraderHandler.cpp: 500] load doc2.log succeed!
+
+2019-11-12 00:04:04,215816 [INFO] [CTraderHandler.cpp: 960] =============开始查询合约信息=============
+
+2019-11-12 00:04:04,216813 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:04:04,299765 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:1
+
+2019-11-12 00:04:04,300765 [INFO] [CTraderHandler.cpp: 529] bu1912查询行情响应
+
+2019-11-12 00:04:04,302766 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:04,404705 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:04:04,498652 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:2
+
+2019-11-12 00:04:04,499651 [INFO] [CTraderHandler.cpp: 529] ag1912查询行情响应
+
+2019-11-12 00:04:04,501649 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:04,606590 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:04:04,700536 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:3
+
+2019-11-12 00:04:04,701535 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:04,804476 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:04:04,897437 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:4
+
+2019-11-12 00:04:04,898421 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:05,001647 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:04:05,098589 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:5
+
+2019-11-12 00:04:05,099589 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:05,202535 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:04:05,308468 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:6
+
+2019-11-12 00:04:05,308468 [INFO] [CTraderHandler.cpp: 529] bu1912查询行情响应
+
+2019-11-12 00:04:05,310468 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:05,412410 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:04:05,499360 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:7
+
+2019-11-12 00:04:05,500360 [INFO] [CTraderHandler.cpp: 529] ag1912查询行情响应
+
+2019-11-12 00:04:05,502357 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:05,604603 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:04:05,699494 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:8
+
+2019-11-12 00:04:05,700492 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:05,802435 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:04:05,901376 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:9
+
+2019-11-12 00:04:05,901376 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:06,005020 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:04:06,100826 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData ReqId:10
+
+2019-11-12 00:04:06,102827 [INFO] [CTraderHandler.cpp: 546] ================================================================
+
+2019-11-12 00:04:06,110822 [INFO] [CTraderHandler.cpp: 565] 首轮询价完毕
+===========后台轮询查询开始===========
+
+2019-11-12 00:04:06,129809 [INFO] [CTraderHandler.cpp: 972] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:09:57,422754 [INFO] [TPProjects.cpp: 30] My first info log using default logger
+2019-11-12 00:09:57,422754 [INFO] [TPProjects.cpp: 31] My second info log using default loggeragain
+2019-11-12 00:09:57,524696 [INFO] [CTraderHandler.cpp: 146] Connect Success......
+
+2019-11-12 00:09:57,526698 [INFO] [CTraderHandler.cpp: 40] 客户端认证 = 0
+
+2019-11-12 00:09:57,587660 [INFO] [CTraderHandler.cpp: 162] Authenticate success......
+
+2019-11-12 00:09:57,975438 [INFO] [CTraderHandler.cpp: 174] 0
+
+2019-11-12 00:09:58,011417 [INFO] [CTraderHandler.cpp: 182] Login success......
+
+2019-11-12 00:09:58,012416 [INFO] [CTraderHandler.cpp: 186] Trading Day: 20191112
+
+2019-11-12 00:09:58,043401 [INFO] [CTraderHandler.cpp: 962] =============加载文件 doc1.log & doc2.log =============
+
+2019-11-12 00:09:58,045397 [INFO] [CTraderHandler.cpp: 482] load doc1.log succeed!
+
+2019-11-12 00:09:58,046400 [INFO] [CTraderHandler.cpp: 500] load doc2.log succeed!
+
+2019-11-12 00:09:58,047396 [INFO] [CTraderHandler.cpp: 964] =============开始查询合约信息=============
+
+2019-11-12 00:10:02,874642 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:10:05,103624 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :1
+
+2019-11-12 00:10:05,104607 [INFO] [CTraderHandler.cpp: 529] bu1912获取行情数据
+
+2019-11-12 00:10:05,106606 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:10:10,653419 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:10:14,152269 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :2
+
+2019-11-12 00:10:14,154268 [INFO] [CTraderHandler.cpp: 529] ag1912获取行情数据
+
+2019-11-12 00:10:14,159267 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:10:15,531247 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:10:25,245527 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :3
+
+2019-11-12 00:12:38,048220 [INFO] [TPProjects.cpp: 30] My first info log using default logger
+2019-11-12 00:12:38,048220 [INFO] [TPProjects.cpp: 31] My second info log using default loggeragain
+2019-11-12 00:12:38,213123 [INFO] [CTraderHandler.cpp: 146] Connect Success......
+
+2019-11-12 00:12:38,216122 [INFO] [CTraderHandler.cpp: 40] 客户端认证 = 0
+
+2019-11-12 00:12:38,288081 [INFO] [CTraderHandler.cpp: 162] Authenticate success......
+
+2019-11-12 00:12:38,674859 [INFO] [CTraderHandler.cpp: 174] 0
+
+2019-11-12 00:12:38,709840 [INFO] [CTraderHandler.cpp: 182] Login success......
+
+2019-11-12 00:12:38,709840 [INFO] [CTraderHandler.cpp: 186] Trading Day: 20191112
+
+2019-11-12 00:12:38,750817 [INFO] [CTraderHandler.cpp: 962] =============加载文件 doc1.log & doc2.log =============
+
+2019-11-12 00:12:38,752816 [INFO] [CTraderHandler.cpp: 482] load doc1.log succeed!
+
+2019-11-12 00:12:38,755812 [INFO] [CTraderHandler.cpp: 500] load doc2.log succeed!
+
+2019-11-12 00:12:38,758811 [INFO] [CTraderHandler.cpp: 964] =============开始查询合约信息=============
+
+2019-11-12 00:12:41,933899 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:12:42,790158 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :1
+
+2019-11-12 00:12:42,791158 [INFO] [CTraderHandler.cpp: 529] bu1912获取行情数据
+
+2019-11-12 00:12:42,793157 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:12:43,556216 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:12:44,347625 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :2
+
+2019-11-12 00:12:44,348630 [INFO] [CTraderHandler.cpp: 529] ag1912获取行情数据
+
+2019-11-12 00:12:44,350629 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:12:48,050424 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:12:49,403691 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :3
+
+2019-11-12 00:12:49,404669 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 3
+
+2019-11-12 00:12:49,406671 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:12:56,506130 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:12:58,314220 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :4
+
+2019-11-12 00:12:58,315225 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 4
+
+2019-11-12 00:12:58,318218 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:13:04,526788 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:13:06,698706 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :5
+
+2019-11-12 00:13:06,698706 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 5
+
+2019-11-12 00:13:06,701705 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:13:12,815243 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:18:17,921713 [INFO] [TPProjects.cpp: 30] My first info log using default logger
+2019-11-12 00:18:17,922712 [INFO] [TPProjects.cpp: 31] My second info log using default loggeragain
+2019-11-12 00:18:18,094614 [INFO] [CTraderHandler.cpp: 146] Connect Success......
+
+2019-11-12 00:18:18,096611 [INFO] [CTraderHandler.cpp: 40] 客户端认证 = 0
+
+2019-11-12 00:18:18,163573 [INFO] [CTraderHandler.cpp: 162] Authenticate success......
+
+2019-11-12 00:18:18,630305 [INFO] [CTraderHandler.cpp: 174] 0
+
+2019-11-12 00:18:18,666286 [INFO] [CTraderHandler.cpp: 182] Login success......
+
+2019-11-12 00:18:18,666286 [INFO] [CTraderHandler.cpp: 186] Trading Day: 20191112
+
+2019-11-12 00:18:18,702263 [INFO] [CTraderHandler.cpp: 962] =============加载文件 doc1.log & doc2.log =============
+
+2019-11-12 00:18:18,704263 [INFO] [CTraderHandler.cpp: 482] load doc1.log succeed!
+
+2019-11-12 00:18:18,705262 [INFO] [CTraderHandler.cpp: 500] load doc2.log succeed!
+
+2019-11-12 00:18:18,706262 [INFO] [CTraderHandler.cpp: 964] =============开始查询合约信息=============
+
+2019-11-12 00:18:47,242971 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:18:48,167576 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :1
+
+2019-11-12 00:18:48,168582 [INFO] [CTraderHandler.cpp: 529] bu1912获取行情数据
+
+2019-11-12 00:18:48,177581 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:18:49,047376 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:18:49,751204 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :2
+
+2019-11-12 00:18:49,752191 [INFO] [CTraderHandler.cpp: 529] ag1912获取行情数据
+
+2019-11-12 00:18:49,754195 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:18:50,523881 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:18:51,455445 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :3
+
+2019-11-12 00:18:51,457437 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 3
+
+2019-11-12 00:18:51,463434 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:18:52,633154 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:18:53,313995 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :4
+
+2019-11-12 00:18:53,314995 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 4
+
+2019-11-12 00:18:53,319992 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:18:54,033893 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:18:54,948580 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :5
+
+2019-11-12 00:18:54,949577 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 5
+
+2019-11-12 00:18:54,951599 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:18:55,868610 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:18:56,851727 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :6
+
+2019-11-12 00:18:56,853720 [INFO] [CTraderHandler.cpp: 529] bu1912获取行情数据
+
+2019-11-12 00:18:56,857718 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:18:57,778551 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:18:58,703136 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :7
+
+2019-11-12 00:18:58,704136 [INFO] [CTraderHandler.cpp: 529] ag1912获取行情数据
+
+2019-11-12 00:18:58,706134 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:19:21,965625 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:19:23,771780 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :8
+
+2019-11-12 00:19:23,773787 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 8
+
+2019-11-12 00:19:23,783779 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:19:28,956329 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:19:42,246440 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :9
+
+2019-11-12 00:19:42,247438 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 9
+
+2019-11-12 00:19:42,255444 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:19:43,478182 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:19:44,652626 [INFO] [CTraderHandler.cpp: 527] OnRspQryDepthMarketData :10
+
+2019-11-12 00:19:44,653620 [INFO] [CTraderHandler.cpp: 547] GET Nothing as resp when nRequest: 10
+
+2019-11-12 00:19:44,660615 [INFO] [CTraderHandler.cpp: 550] ================================================================
+
+2019-11-12 00:19:44,662615 [INFO] [CTraderHandler.cpp: 569] 首轮询价完毕
+===========后台轮询查询开始===========
+
+2019-11-12 00:20:12,408218 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:21:44,216578 [INFO] [TPProjects.cpp: 30] My first info log using default logger
+2019-11-12 00:21:44,217579 [INFO] [TPProjects.cpp: 31] My second info log using default loggeragain
+2019-11-12 00:21:44,398474 [INFO] [CTraderHandler.cpp: 146] Connect Success......
+
+2019-11-12 00:21:44,401471 [INFO] [CTraderHandler.cpp: 40] 客户端认证 = 0
+
+2019-11-12 00:21:44,474430 [INFO] [CTraderHandler.cpp: 162] Authenticate success......
+
+2019-11-12 00:21:44,907183 [INFO] [CTraderHandler.cpp: 174] 0
+
+2019-11-12 00:21:44,950157 [INFO] [CTraderHandler.cpp: 182] Login success......
+
+2019-11-12 00:21:44,951156 [INFO] [CTraderHandler.cpp: 186] Trading Day: 20191112
+
+2019-11-12 00:21:44,987136 [INFO] [CTraderHandler.cpp: 962] =============加载文件 doc1.log & doc2.log =============
+
+2019-11-12 00:21:44,989136 [INFO] [CTraderHandler.cpp: 482] load doc1.log succeed!
+
+2019-11-12 00:21:44,991134 [INFO] [CTraderHandler.cpp: 500] load doc2.log succeed!
+
+2019-11-12 00:21:44,992134 [INFO] [CTraderHandler.cpp: 964] =============开始查询合约信息=============
+
+2019-11-12 00:21:44,992134 [INFO] [CTraderHandler.cpp: 976] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:24:43,486014 [INFO] [TPProjects.cpp: 30] My first info log using default logger
+2019-11-12 00:24:43,488014 [INFO] [TPProjects.cpp: 31] My second info log using default loggeragain
+2019-11-12 00:24:43,661911 [INFO] [CTraderHandler.cpp: 146] Connect Success......
+
+2019-11-12 00:24:43,664934 [INFO] [CTraderHandler.cpp: 40] 客户端认证 = 0
+
+2019-11-12 00:24:43,730873 [INFO] [CTraderHandler.cpp: 162] Authenticate success......
+
+2019-11-12 00:24:44,224589 [INFO] [CTraderHandler.cpp: 174] 0
+
+2019-11-12 00:24:44,261568 [INFO] [CTraderHandler.cpp: 182] Login success......
+
+2019-11-12 00:24:44,261568 [INFO] [CTraderHandler.cpp: 186] Trading Day: 20191112
+
+2019-11-12 00:24:44,298546 [INFO] [CTraderHandler.cpp: 964] =============加载文件 doc1.log & doc2.log =============
+
+2019-11-12 00:24:44,300546 [INFO] [CTraderHandler.cpp: 483] load doc1.log succeed!
+
+2019-11-12 00:24:44,302544 [INFO] [CTraderHandler.cpp: 501] load doc2.log succeed!
+
+2019-11-12 00:24:44,303544 [INFO] [CTraderHandler.cpp: 966] =============开始查询合约信息=============
+
+2019-11-12 00:24:44,304546 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:24:58,602296 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :1
+
+2019-11-12 00:24:58,602296 [INFO] [CTraderHandler.cpp: 531] bu1912获取行情数据
+
+2019-11-12 00:24:58,605307 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:24:58,708263 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:24:59,658934 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :2
+
+2019-11-12 00:24:59,659941 [INFO] [CTraderHandler.cpp: 531] ag1912获取行情数据
+
+2019-11-12 00:24:59,661940 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:24:59,764137 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:25:22,133092 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :3
+
+2019-11-12 00:25:22,135096 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 3
+
+2019-11-12 00:25:22,137093 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:25:22,239124 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:25:24,267082 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :4
+
+2019-11-12 00:25:24,267082 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 4
+
+2019-11-12 00:25:24,272081 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:25:24,374330 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:25:26,936769 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :5
+
+2019-11-12 00:25:26,937773 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 5
+
+2019-11-12 00:25:26,939774 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:25:27,042916 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:25:27,559013 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :6
+
+2019-11-12 00:25:27,559013 [INFO] [CTraderHandler.cpp: 531] bu1912获取行情数据
+
+2019-11-12 00:25:27,562012 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:25:27,663994 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:25:28,048772 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :7
+
+2019-11-12 00:25:28,049761 [INFO] [CTraderHandler.cpp: 531] ag1912获取行情数据
+
+2019-11-12 00:25:28,051752 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:25:28,154033 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:25:28,505305 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :8
+
+2019-11-12 00:25:28,505305 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 8
+
+2019-11-12 00:25:28,509302 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:25:28,611352 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:25:36,137108 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :9
+
+2019-11-12 00:25:36,138069 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 9
+
+2019-11-12 00:25:36,141068 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:25:36,244006 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:25:37,156568 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :10
+
+2019-11-12 00:25:37,157575 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 10
+
+2019-11-12 00:25:37,159574 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:25:37,161576 [INFO] [CTraderHandler.cpp: 571] 首轮询价完毕
+===========后台轮询查询开始===========
+
+2019-11-12 00:26:00,078646 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:26:47,105957 [INFO] [TPProjects.cpp: 30] My first info log using default logger
+2019-11-12 00:26:47,105957 [INFO] [TPProjects.cpp: 31] My second info log using default loggeragain
+2019-11-12 00:26:47,273861 [INFO] [CTraderHandler.cpp: 146] Connect Success......
+
+2019-11-12 00:26:47,276860 [INFO] [CTraderHandler.cpp: 40] 客户端认证 = 0
+
+2019-11-12 00:26:47,347822 [INFO] [CTraderHandler.cpp: 162] Authenticate success......
+
+2019-11-12 00:26:47,756585 [INFO] [CTraderHandler.cpp: 174] 0
+
+2019-11-12 00:26:47,789565 [INFO] [CTraderHandler.cpp: 182] Login success......
+
+2019-11-12 00:26:47,789565 [INFO] [CTraderHandler.cpp: 186] Trading Day: 20191112
+
+2019-11-12 00:26:47,827546 [INFO] [CTraderHandler.cpp: 964] =============加载文件 doc1.log & doc2.log =============
+
+2019-11-12 00:26:47,829543 [INFO] [CTraderHandler.cpp: 483] load doc1.log succeed!
+
+2019-11-12 00:26:47,830542 [INFO] [CTraderHandler.cpp: 501] load doc2.log succeed!
+
+2019-11-12 00:26:47,832541 [INFO] [CTraderHandler.cpp: 966] =============开始查询合约信息=============
+
+2019-11-12 00:26:47,832541 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:27:01,698849 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :1
+
+2019-11-12 00:27:01,699851 [INFO] [CTraderHandler.cpp: 531] bu1912获取行情数据
+
+2019-11-12 00:27:01,703850 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:01,805910 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:27:05,859032 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :2
+
+2019-11-12 00:27:05,862027 [INFO] [CTraderHandler.cpp: 531] ag1912获取行情数据
+
+2019-11-12 00:27:05,866034 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:05,967968 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:27:06,558883 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :3
+
+2019-11-12 00:27:06,563879 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 3
+
+2019-11-12 00:27:06,566877 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:06,670955 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:27:09,268591 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :4
+
+2019-11-12 00:27:09,269590 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 4
+
+2019-11-12 00:27:09,272589 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:09,374297 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:27:11,573842 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :5
+
+2019-11-12 00:27:11,573842 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 5
+
+2019-11-12 00:27:11,576838 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:11,679799 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:27:14,930034 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :6
+
+2019-11-12 00:27:14,930034 [INFO] [CTraderHandler.cpp: 531] bu1912获取行情数据
+
+2019-11-12 00:27:14,933031 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:15,034119 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:27:18,821355 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :7
+
+2019-11-12 00:27:18,822356 [INFO] [CTraderHandler.cpp: 531] ag1912获取行情数据
+
+2019-11-12 00:27:18,824351 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:18,926368 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:27:20,725098 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :8
+
+2019-11-12 00:27:20,726102 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 8
+
+2019-11-12 00:27:20,728121 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:20,831164 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:27:22,379074 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :9
+
+2019-11-12 00:27:22,380073 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 9
+
+2019-11-12 00:27:22,385069 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:22,489501 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:27:24,071873 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :10
+
+2019-11-12 00:27:24,072864 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 10
+
+2019-11-12 00:27:24,074864 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:27:24,075863 [INFO] [CTraderHandler.cpp: 571] 首轮询价完毕
+===========后台轮询查询开始===========
+
+2019-11-12 00:27:33,625111 [INFO] [CTraderHandler.cpp: 978] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:35:06,958310 [INFO] [TPProjects.cpp: 30] My first info log using default logger
+2019-11-12 00:35:06,959329 [INFO] [TPProjects.cpp: 31] My second info log using default loggeragain
+2019-11-12 00:35:07,121238 [INFO] [CTraderHandler.cpp: 146] Connect Success......
+
+2019-11-12 00:35:07,125213 [INFO] [CTraderHandler.cpp: 40] 客户端认证 = 0
+
+2019-11-12 00:35:07,191194 [INFO] [CTraderHandler.cpp: 162] Authenticate success......
+
+2019-11-12 00:35:07,621929 [INFO] [CTraderHandler.cpp: 174] 0
+
+2019-11-12 00:35:07,653910 [INFO] [CTraderHandler.cpp: 182] Login success......
+
+2019-11-12 00:35:07,654909 [INFO] [CTraderHandler.cpp: 186] Trading Day: 20191112
+
+2019-11-12 00:35:07,923758 [INFO] [CTraderHandler.cpp: 963] =============加载文件 doc1.log & doc2.log =============
+
+2019-11-12 00:35:07,925754 [INFO] [CTraderHandler.cpp: 483] load doc1.log succeed!
+
+2019-11-12 00:35:07,929751 [INFO] [CTraderHandler.cpp: 501] load doc2.log succeed!
+
+2019-11-12 00:35:07,932750 [INFO] [CTraderHandler.cpp: 965] =============开始查询合约信息=============
+
+2019-11-12 00:35:07,932750 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:35:12,131076 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:17,402266 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :1
+
+2019-11-12 00:35:17,403255 [INFO] [CTraderHandler.cpp: 531] bu1912获取行情数据
+
+2019-11-12 00:35:17,409253 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:17,513320 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:35:17,633201 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:17,634198 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :2
+
+2019-11-12 00:35:17,639198 [INFO] [CTraderHandler.cpp: 531] ag1912获取行情数据
+
+2019-11-12 00:35:17,641193 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:17,743567 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:35:17,830518 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:17,831522 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :3
+
+2019-11-12 00:35:17,833518 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 3
+
+2019-11-12 00:35:17,835515 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:17,937500 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:35:18,033403 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:18,035403 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :4
+
+2019-11-12 00:35:18,040409 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 4
+
+2019-11-12 00:35:18,046399 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:18,154012 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:35:18,242824 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:18,243827 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :5
+
+2019-11-12 00:35:18,250822 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 5
+
+2019-11-12 00:35:18,253818 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:18,357826 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:35:18,438780 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:18,450773 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :6
+
+2019-11-12 00:35:18,451775 [INFO] [CTraderHandler.cpp: 531] bu1912获取行情数据
+
+2019-11-12 00:35:18,452772 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:18,554713 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:35:18,632669 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:18,632669 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :7
+
+2019-11-12 00:35:18,634671 [INFO] [CTraderHandler.cpp: 531] ag1912获取行情数据
+
+2019-11-12 00:35:18,636673 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:18,738609 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:35:18,840551 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:18,841549 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :8
+
+2019-11-12 00:35:18,843547 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 8
+
+2019-11-12 00:35:18,846548 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:18,947874 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:35:19,034691 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:19,034691 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :9
+
+2019-11-12 00:35:19,037697 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 9
+
+2019-11-12 00:35:19,039688 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:19,142684 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:35:19,236627 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:19,237627 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :10
+
+2019-11-12 00:35:19,238630 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 10
+
+2019-11-12 00:35:19,241624 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:19,243631 [INFO] [CTraderHandler.cpp: 571] 首轮询价完毕
+===========后台轮询查询开始===========
+
+2019-11-12 00:35:24,980997 [INFO] [CTraderHandler.cpp: 573] ===========集合竞价开始===========
+
+2019-11-12 00:35:38,291818 [INFO] [CTraderHandler.cpp: 278] ag1912 集合下单一次
+
+2019-11-12 00:35:38,291818 [INFO] [CTraderHandler.cpp: 471] ag1912 集合下单一次
+back query begin in thread: 17120
+2019-11-12 00:35:44,926015 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:35:45,128476 [INFO] [CTraderHandler.cpp: 278] bu1912 集合下单一次
+
+2019-11-12 00:35:45,374194 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:45,375197 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :11
+
+2019-11-12 00:35:45,380193 [INFO] [CTraderHandler.cpp: 531] bu1912获取行情数据
+
+2019-11-12 00:35:45,381192 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:45,883839 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:35:45,886838 [INFO] [CTraderHandler.cpp: 629] ================================================================
+
+2019-11-12 00:35:45,887821 [INFO] [CTraderHandler.cpp: 630] OnRtnOrder is called
+
+2019-11-12 00:35:45,888818 [INFO] [CTraderHandler.cpp: 633] instrumentid is ag1912
+
+2019-11-12 00:35:45,889817 [INFO] [CTraderHandler.cpp: 634] OrderSubmitStatus is 0
+
+2019-11-12 00:35:45,890815 [INFO] [CTraderHandler.cpp: 635] OrderStatus is a
+
+2019-11-12 00:35:45,891815 [INFO] [CTraderHandler.cpp: 629] ================================================================
+
+2019-11-12 00:35:45,892814 [INFO] [CTraderHandler.cpp: 630] OnRtnOrder is called
+
+2019-11-12 00:35:45,893814 [INFO] [CTraderHandler.cpp: 633] instrumentid is bu1912
+
+2019-11-12 00:35:45,893814 [INFO] [CTraderHandler.cpp: 634] OrderSubmitStatus is 0
+
+2019-11-12 00:35:45,896815 [INFO] [CTraderHandler.cpp: 635] OrderStatus is a
+
+2019-11-12 00:35:45,897829 [INFO] [CTraderHandler.cpp: 629] ================================================================
+
+2019-11-12 00:35:45,898812 [INFO] [CTraderHandler.cpp: 630] OnRtnOrder is called
+
+2019-11-12 00:35:45,898812 [INFO] [CTraderHandler.cpp: 633] instrumentid is ag1912
+
+2019-11-12 00:35:45,900811 [INFO] [CTraderHandler.cpp: 634] OrderSubmitStatus is 4
+
+2019-11-12 00:35:45,901811 [INFO] [CTraderHandler.cpp: 635] OrderStatus is 5
+
+2019-11-12 00:35:45,902810 [INFO] [CTraderHandler.cpp: 629] ================================================================
+
+2019-11-12 00:35:45,906807 [INFO] [CTraderHandler.cpp: 630] OnRtnOrder is called
+
+2019-11-12 00:35:45,908807 [INFO] [CTraderHandler.cpp: 633] instrumentid is bu1912
+
+2019-11-12 00:35:45,912804 [INFO] [CTraderHandler.cpp: 634] OrderSubmitStatus is 4
+
+2019-11-12 00:35:45,919799 [INFO] [CTraderHandler.cpp: 635] OrderStatus is 5
+
+2019-11-12 00:35:46,061717 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:46,063716 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :12
+
+2019-11-12 00:35:46,082706 [INFO] [CTraderHandler.cpp: 531] ag1912获取行情数据
+
+2019-11-12 00:35:46,088702 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:46,593863 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:35:46,666819 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:46,667839 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :13
+
+2019-11-12 00:35:46,669820 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 13
+
+2019-11-12 00:35:46,670816 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:47,172423 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:35:47,262270 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:47,262270 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :14
+
+2019-11-12 00:35:47,265250 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 14
+
+2019-11-12 00:35:47,266251 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:47,767804 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: a1909
+
+2019-11-12 00:35:47,889711 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:47,889711 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :15
+
+2019-11-12 00:35:47,893717 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 15
+
+2019-11-12 00:35:47,894708 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:48,397542 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: bu1912
+
+2019-11-12 00:35:48,465369 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:48,467376 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :16
+
+2019-11-12 00:35:48,470370 [INFO] [CTraderHandler.cpp: 531] bu1912获取行情数据
+
+2019-11-12 00:35:48,473364 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:48,977182 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: ag1912
+
+2019-11-12 00:35:49,062043 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:49,063035 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :17
+
+2019-11-12 00:35:49,067040 [INFO] [CTraderHandler.cpp: 531] ag1912获取行情数据
+
+2019-11-12 00:35:49,069031 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:49,571906 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: hc1910
+
+2019-11-12 00:35:49,665967 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:49,666860 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :18
+
+2019-11-12 00:35:49,668849 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 18
+
+2019-11-12 00:35:49,669850 [INFO] [CTraderHandler.cpp: 552] ================================================================
+
+2019-11-12 00:35:50,171346 [INFO] [CTraderHandler.cpp: 977] queryDepthMarketData instrumentID: rb1910
+
+2019-11-12 00:35:50,242167 [INFO] [CTraderHandler.cpp: 517] OnRspQryDepthMarketData is called in 13136
+2019-11-12 00:35:50,244167 [INFO] [CTraderHandler.cpp: 529] OnRspQryDepthMarketData :19
+
+2019-11-12 00:35:50,268152 [INFO] [CTraderHandler.cpp: 549] GET Nothing as resp when nRequest: 19
+
+2019-11-12 00:35:50,272154 [INFO] [CTraderHandler.cpp: 552] ================================================================
+

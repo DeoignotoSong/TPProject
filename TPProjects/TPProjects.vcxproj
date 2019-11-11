@@ -154,6 +154,7 @@
     <ClCompile Include="AuctionInsState.cpp" />
     <ClCompile Include="CMdHandler.cpp" />
     <ClCompile Include="CTraderHandler.cpp" />
+    <ClCompile Include="easylogging++.cc" />
     <ClCompile Include="FileReader.cpp" />
     <ClCompile Include="getconfig.cpp" />
     <ClCompile Include="InstrumentInfo.cpp" />
@@ -167,6 +168,7 @@
   <ItemGroup>
     <ClInclude Include="CMdHandler.h" />
     <ClInclude Include="CTraderHandler.h" />
+    <ClInclude Include="easylogging++.h" />
     <ClInclude Include="FileReader.h" />
     <ClInclude Include="getconfig.h" />
     <ClInclude Include="InstrumentInfo.h" />
@@ -182,6 +184,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="config.ini" />
+    <None Include="logging.conf" />
     <None Include="thostmduserapi_se.dll" />
     <None Include="thosttraderapi_se.dll" />
   </ItemGroup>

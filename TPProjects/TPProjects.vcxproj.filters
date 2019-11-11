@@ -51,6 +51,9 @@
     <ClCompile Include="SlipperyPhase.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="easylogging++.cc">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMdHandler.h">
@@ -95,11 +98,17 @@
     <ClInclude Include="SlipperyInsState.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="easylogging++.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="thostmduserapi_se.dll" />
     <None Include="thosttraderapi_se.dll" />
     <None Include="config.ini">
+      <Filter>头文件</Filter>
+    </None>
+    <None Include="logging.conf">
       <Filter>头文件</Filter>
     </None>
   </ItemGroup>
