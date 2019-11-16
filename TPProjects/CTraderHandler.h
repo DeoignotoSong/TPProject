@@ -13,13 +13,14 @@
 #include <iostream>
 #include <chrono>    // std::chrono::seconds
 #include <thread>    // std::thread, std::this_thread::sleep_for
-#include <map>
 #include <unordered_map>
+#include <mutex>
 #include "easylogging++.h"
 
 using namespace std;
 
 class CTraderHandler : public CThostFtdcTraderSpi {
+mutex mtx;
 public:
 	CTraderHandler(CThostFtdcTraderApi* pUserTraderApi);
 	~CTraderHandler();
@@ -121,7 +122,7 @@ public:
 	// scan slipperyInsStateMap 所有合约单的状态
 	void scanSlipperyOrderState();
 	// 撤销滑点报单
-	void cancelInstrument(string instrumentId);
+	void cancelInstrument(int reqId);
 	// 报单查询请求。当客户端发出报单查询指令后，交易托管系统返回响应时，该方法会被调用
 	void OnRspQryOrder(
 		CThostFtdcOrderField* pOrder,
@@ -153,29 +154,28 @@ private:
 	int auctionLastReqId = 0;
 	vector<string> allInstruments;
 	// 用于记录 合约号与交易所的对应关系
-	map<string, string> instrumentsExchange;
+	unordered_map<string, string> instrumentsExchange;
 	// 记录不同合约的最新信息，仅记录有效合约单号
-	map<string, InstrumentInfo> instrumentInfoMap;
+	unordered_map<string, InstrumentInfo> instrumentInfoMap;
 	// 用于确认每次查询仅处理对应的回调一次
-	map<int, string> onceQueryMarker;
+	unordered_map<int, string> onceQueryMarker;
 
 	// 记录不同的合约，需要买or卖，操作量多少
 	// 记录参与集合竞价的合约
-	map<string, InstrumentOrderInfo> auctionInsOrderMap;
+	unordered_map<string, InstrumentOrderInfo> auctionInsOrderMap;
 	// 记录参与滑点下单的合约
-	map<string, InstrumentOrderInfo> slipperyInsOrderMap;
+	unordered_map<string, InstrumentOrderInfo> slipperyInsOrderMap;
 
 	// 记录不同合约的订单状态，下单成功与否，成交与否
 	// 记录参与集合竞价的合约状态
 	unordered_map<string, AuctionInsState*> auctionInsStateMap;
 	// 记录参与滑点下单的合约状态
-	unordered_map<string, SlipperyInsState*> slipperyInsStateMap;
+	// 由于第二部分需要每笔下单一手，所以需要记录每一手的状态。first=orderId, second=state
+	// 第二部分的scan阶段和报单阶段，要对slipperyInsStateMap的读写加锁
+	unordered_map<string, unordered_map<int, SlipperyInsState*>> slipperyInsStateMap;
 
 	// 需要获取CThostFtdcOrderField.OrderSysID 报单编号，用于查询状态
-	unordered_map<string, CThostFtdcOrderField*> slipperyRtnOrderMap;
-	unordered_map<string, int> slipperyFinishedIns;
-	
-	// 已撤回的合约
-	map<string, int> cancelledIns;
+	// 同上，需要记录每一手order的内容。first=orderId, second=orderField
+	unordered_map<int, CThostFtdcOrderField*> slipperyRtnOrderMap;
 	
 };

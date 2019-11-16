@@ -60,7 +60,8 @@ CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumen
 	
 	string exchangeID = getExchangeId(instrumentID);
 	bool buyIn = orderInfo.buyOrSell();
-	int vol = orderInfo.getVol();
+	// 第二部分要求每次报单一手
+	int vol = 1;
 	double price = choosePrice(lastestInfo);
 	int requestId = this->orderReqIndex;
 	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFD, requestId);
@@ -331,12 +332,26 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 	curPhase = phase;
 	for (auto iter = slipperyInsOrderMap.begin(); iter != slipperyInsOrderMap.end(); iter++) {
 		string instrumentId = iter->first;
+		InstrumentOrderInfo orderInfo = iter->second;
 		LOG(INFO) << "IntrumentId: "<< instrumentId;
 		if (instrumentInfoMap.find(instrumentId) == instrumentInfoMap.end()) {
 			LOG(INFO) << "不存在于instrumentInfoMap中，不可下单";
 			// 如果instrumentId不在instrumentInfoMap，说明查询数据失败
-			slipperyInsStateMap[instrumentId] = new SlipperyInsState(SlipperyInsState::STATE_ENUM::NO_INFO, -1);
+			for (size_t i = 1; i <= orderInfo.getVol(); i++)
+			{
+				// 对于合约信息都查询不到的单子，直接略过
+				slipperyInsStateMap[instrumentId].insert(pair<int, SlipperyInsState*>
+					(0-i, new SlipperyInsState(SlipperyInsState::STATE_ENUM::NO_INFO, -1)));
+			}
 			continue;
+		}
+		// 第一阶段，对所有合约下单
+		if (phase == SlipperyPhase::PHASE_1) {
+			// 每次下单一手
+			for (size_t i = 0; i < orderInfo.getVol(); i++)
+			{
+				submitSlipperyOrder(instrumentId);
+			}
 		}
 		// 第二阶段，只对未成交的部分合约处理
 		if (phase == SlipperyPhase::PHASE_2) {
@@ -345,13 +360,16 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 				LOG(INFO) << "不存在于slipperyInsStateMap中，不可下单";
 				continue;
 			}
-			if (pair->second->getState() != SlipperyInsState::UNTRADED
-				|| pair->second->getState() != SlipperyInsState::RETRIVED) {
-				LOG(INFO) << "该合约状态是"<< pair->second->getState() <<"，在阶段二中不下单";
-				continue;
-			}
+			for (auto orderIter = pair->second.begin(); orderIter != pair->second.end(); orderIter++) {
+				if (orderIter->second->getState() == SlipperyInsState::UNTRADED
+				|| orderIter->second->getState() == SlipperyInsState::RETRIVED) {
+					submitSlipperyOrder(instrumentId);
+				}
+				else {
+					LOG(INFO) << "阶段二中，订单状态为："<< orderIter->second->getState() <<", 不下单";
+				}
+			}			
 		}
-		submitSlipperyOrder(instrumentId);
 	}
 }
 
@@ -366,7 +384,7 @@ void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 		result = pUserTraderApi->ReqOrderInsert(&order, orderReqIndex);
 		if (0 == result) {
 			LOG(INFO) << "Order ReqId: "<< orderReqIndex;
-			slipperyInsStateMap[instrumentId] = 
+			slipperyInsStateMap[instrumentId][orderReqIndex] =
 				new SlipperyInsState(SlipperyInsState::STATE_ENUM::STARTED, orderReqIndex);
 			break;
 		}
@@ -461,17 +479,28 @@ void CTraderHandler::slipPhaseCEntrance() {
 }
 void CTraderHandler::slipPhaseCProcess() {
 	bool orderSubmit = false;
-	for (auto state = slipperyInsStateMap.begin(); state != slipperyInsStateMap.end(); state++) {
-		// 暂未match的报单, 撤回
-		if (state->second->getState() == SlipperyInsState::ORDERED) {
-			cancelInstrument(state->first);
-			orderSubmit = true;
-			break;
-		}//已撤回和确定未成单的报单，再下单
-		else if (state->second->getState() == SlipperyInsState::RETRIVED
-			|| state->second->getState() == SlipperyInsState::UNTRADED) {
-			submitSlipperyOrder(state->first);
-			orderSubmit = true;
+	for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
+		for (auto orderItem = stateMap->second.begin(); orderItem != stateMap->second.end(); orderItem++) {
+			// 暂未match的报单, 撤回
+			if (orderItem->second->getState() == SlipperyInsState::ORDERED) {
+				cancelInstrument(orderItem->first);
+				orderSubmit = true;
+				break;
+			}//已撤回和确定未成单的报单，再下单。此类型报单需要对map进行修改，需要加锁
+			else if (orderItem->second->getState() == SlipperyInsState::RETRIVED
+				|| orderItem->second->getState() == SlipperyInsState::UNTRADED
+				|| orderItem->second->getState() == SlipperyInsState::ORDER_FAILED) {
+				mtx.lock();
+				LOG(INFO) << "slipPhaseCProcess LOCKED for " << stateMap->first;
+				slipperyInsStateMap[stateMap->first].erase(orderItem->first);
+				submitSlipperyOrder(stateMap->first);
+				mtx.unlock();
+				LOG(INFO) << "slipPhaseCProcess UNLOCKED for " << stateMap->first;
+				orderSubmit = true;
+				break;
+			}
+		}
+		if (orderSubmit) {
 			break;
 		}
 	}
@@ -522,6 +551,7 @@ vector<string> CTraderHandler::loadInstruments() {
 			allInstruments.push_back(arr.at(1));
 			instrumentsExchange[arr.at(1)] = arr.at(2);
 			slipperyInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(3))));
+			slipperyInsStateMap.insert(pair<string, unordered_map<int, SlipperyInsState*>>(arr.at(1), unordered_map<int, SlipperyInsState*>()));
 		}
 	}
 	return content;
@@ -646,10 +676,19 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	LOG(INFO) << "OnRtnOrder is called"  ;
 
 	string insId = pOrder->InstrumentID;
+	int reqId = pOrder->RequestID;
 	LOG(INFO) << "instrumentid is " << insId  ;
-	LOG(INFO) << "reqId is " << pOrder->RequestID;
+	LOG(INFO) << "reqId is " << reqId;
 	LOG(INFO) << "OrderSubmitStatus is " << pOrder->OrderSubmitStatus  ;
 	LOG(INFO) << "OrderStatus is " << pOrder->OrderStatus  ;
+
+	LOG(INFO) << "OrderRef: " << pOrder->OrderRef;
+	LOG(INFO) << "OrderLocalID: " << pOrder->OrderLocalID;
+	LOG(INFO) << "OrderSysID: " << pOrder->OrderSysID;
+	LOG(INFO) << "OrderSource: " << pOrder->OrderSource;
+	LOG(INFO) << "SequenceNo: " << pOrder->SequenceNo;
+	LOG(INFO) << "FrontID: " << pOrder->FrontID;
+	
 
 	// 报单成功
 	// 验证发现报单后第一次回调：pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertSubmitted, pOrder->OrderStatus == THOST_FTDC_OST_Unknown
@@ -673,10 +712,10 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 			}
 		}// 滑点订单回调
 		else{
-			slipperyRtnOrderMap[insId] = pOrder;
+			slipperyRtnOrderMap[reqId] = pOrder;
 			//slipperyInsStateMap中存在
-			if (slipperyInsStateMap.find(insId) != slipperyInsStateMap.end()) {
-				auto insState = slipperyInsStateMap.find(insId)->second;
+			if (slipperyInsStateMap[insId].find(pOrder->RequestID) != slipperyInsStateMap[insId].end()) {
+				auto insState = slipperyInsStateMap[insId].find(pOrder->RequestID)->second;
 				if (insState->getLatestReqId() == pOrder->RequestID // 回调对应的reqId == 最新状态的reqId
 					&& (insState->getState() == SlipperyInsState::STATE_ENUM::STARTED
 						|| insState->getState() == SlipperyInsState::STATE_ENUM::RETRIVED))  // 要求最近一次状态是UNSTARTED或者RETRIVED
@@ -686,22 +725,11 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 			}
 			else {
 				// NOT POSSIBLE
-				slipperyInsStateMap.insert(pair<string, SlipperyInsState*>(insId,
+				LOG(INFO) << "NOT IMPOSSIBLE HAPPENS!!!";
+				slipperyInsStateMap[insId].insert(pair<int, SlipperyInsState*>(pOrder->RequestID,
 					new SlipperyInsState(SlipperyInsState::STATE_ENUM::ORDERED, pOrder->RequestID)));
 			}
 		}
-
-/*
-		if (0 == auctionIns.size() && !auctionOverFlag) {
-			LOG(INFO) << "集合竞价阶段报单完成"  ;
-			auctionOverFlag = true;
-			// 集合竞价之后需要等待一段时间
-			this_thread::sleep_until(getSlipPhaseAStartTime());
-			LOG(INFO) << "开始扫描合约状态"  ;
-			scanSlipperyOrderState();
-			slipStartFlag = true;
-		}
-		*/
 	}
 
 	// 撤单成功
@@ -785,18 +813,29 @@ void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CT
 void CTraderHandler::scanSlipperyOrderState() {
 	bool needScan = false;
 	string insId;
+	int reqId;
+	mtx.lock();
+	LOG(INFO) << "scanSlipperyOrderState locked";
 	for (auto it = slipperyInsStateMap.begin(); it != slipperyInsStateMap.end(); it++) {
-		if (it->second->getState() != SlipperyInsState::STARTED
-			&& it->second->getState() != SlipperyInsState::ORDERED
-			&& it->second->getState() != SlipperyInsState::RETRIVED) {//仅三状态需要scan
-			continue;
+		for (auto itemIt = it->second.begin(); itemIt != it->second.end(); itemIt++) {
+			if (itemIt->second->getState() != SlipperyInsState::STARTED
+				&& itemIt->second->getState() != SlipperyInsState::ORDERED
+				&& itemIt->second->getState() != SlipperyInsState::RETRIVED) {//仅三状态需要scan
+				continue;
+			}
+			else { //只需要找到一个需要scan的合约就进行Query，等待回调函数中再call该函数
+				needScan = true;
+				insId = it->first;
+				reqId = itemIt->first;
+				break;
+			}
 		}
-		else { //只需要找到一个需要scan的合约就进行Query，等待回调函数中再call该函数
-			needScan = true;
-			insId = it->first;
+		if (needScan) {
 			break;
 		}
 	}
+	mtx.unlock();
+	LOG(INFO) << "scanSlipperyOrderState unlocked";
 	// 如果needScan == false, 意味着slipperyInsStateMap中所有的合约处于NO_INFO, ORDER_FAILED, DONE状态
 	// 已完成第二部分报单任务, 该线程可结束
 	if (!needScan) {
@@ -804,7 +843,7 @@ void CTraderHandler::scanSlipperyOrderState() {
 	}// 如果needScan == true，意味着仍有合约需要scan
 	else
 	{
-		CThostFtdcOrderField* order = slipperyRtnOrderMap.find(insId)->second;
+		CThostFtdcOrderField* order = slipperyRtnOrderMap[reqId];
 		CThostFtdcQryOrderField field = { 0 };
 		// 文档注释里说，“不写 BrokerID 可以收全所有报单。” 不懂什么意思
 		strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
@@ -853,22 +892,21 @@ void CTraderHandler::actionIfSlipperyTraded(string instrumentId, int reqId) {
 		break;
 	}
 	LOG(INFO) << instrumentId <<" 已成交";
-	if (slipperyInsStateMap.find(instrumentId) != slipperyInsStateMap.end()) {
+	if (slipperyInsStateMap[instrumentId].find(reqId) != slipperyInsStateMap[instrumentId].end()) {
 		auto insState = slipperyInsStateMap.find(instrumentId)->second;
 		// Traded是某一合约的终态，不需要check之前的状态
-		insState->updateOnResp(SlipperyInsState::STATE_ENUM::DONE, reqId);
+		slipperyInsStateMap[instrumentId][reqId]->updateOnResp(SlipperyInsState::STATE_ENUM::DONE, reqId);
 	}
 	else {
 		// NOT POSSIBLE
-		slipperyInsStateMap.insert(pair<string, SlipperyInsState*>(instrumentId,
-			new SlipperyInsState(SlipperyInsState::STATE_ENUM::DONE, reqId)));
+		LOG(ERROR) << "NOT POSSIBLE HAPPENS!!!";
+		slipperyInsStateMap[instrumentId][reqId] = new SlipperyInsState(SlipperyInsState::STATE_ENUM::DONE, reqId);
 	}
-	slipperyFinishedIns[instrumentId] = 1;
 }
 
 void CTraderHandler::actionIfSlipperyCanceled(string instrumentId, int reqId) {
-	if (slipperyInsStateMap.find(instrumentId) != slipperyInsStateMap.end()) {
-		auto insState = slipperyInsStateMap.find(instrumentId)->second;
+	if (slipperyInsStateMap[instrumentId].find(reqId) != slipperyInsStateMap[instrumentId].end()) {
+		auto insState = slipperyInsStateMap[instrumentId][reqId];
 		if (insState->getLatestReqId() == reqId // 回调对应的reqId == 最新状态的reqId
 			&& (insState->getState() == SlipperyInsState::STATE_ENUM::STARTED
 				|| insState->getState() == SlipperyInsState::STATE_ENUM::ORDERED))  // 要求最近一次状态是UNSTARTED或者ORDERED
@@ -878,9 +916,13 @@ void CTraderHandler::actionIfSlipperyCanceled(string instrumentId, int reqId) {
 	}
 }
 
-void CTraderHandler::cancelInstrument(string instrumentId) {
-	LOG(INFO) << "撤回合约 " << instrumentId;
-	auto pOrder = slipperyRtnOrderMap.find(instrumentId)->second;
+void CTraderHandler::cancelInstrument(int reqId) {
+	LOG(INFO) << "撤回合约ReqId " << reqId;
+	if (slipperyRtnOrderMap.find(reqId) == slipperyRtnOrderMap.end()) {
+		LOG(ERROR) << "ReqId " << reqId << " 在slipperyRtnOrderMap中缺失";
+		return;
+	}
+	auto pOrder = slipperyRtnOrderMap[reqId];
 	CThostFtdcInputOrderActionField field = {};
 	strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
 	strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
@@ -895,6 +937,8 @@ void CTraderHandler::cancelInstrument(string instrumentId) {
 	while (retry-- > 0) {
 		result = pUserTraderApi->ReqOrderAction(&field, ++orderReqIndex);
 		if (0 == result) {
+			// 由于仅在订单处于ORDERED状态下，才需要发起撤单操作
+			// 认为撤单中也是处于ORDERED状态下，所以成功发起撤单后不需要更改状态
 			break;
 		}
 		if (result < 0) {
@@ -906,7 +950,7 @@ void CTraderHandler::cancelInstrument(string instrumentId) {
 	}
 	// 重试三次，撤单指令发送失败
 	if (result < 0) {
-		LOG(INFO) << "重试三次，撤单 " << instrumentId << " 指令发送失败"  ;
+		LOG(INFO) << "重试三次，撤单 " << reqId << " 指令发送失败"  ;
 	}
 }
 
@@ -929,7 +973,7 @@ void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspIn
 		}
 		// 否则记录订单信息，用于撤单
 		else {
-			slipperyRtnOrderMap[pOrder->InstrumentID] = pOrder;
+			slipperyRtnOrderMap[nRequestID] = pOrder;
 		}
 	}
 	//再次scan, 直到所有报单状态到达终态
@@ -976,6 +1020,7 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 		LOG(INFO) << "错误代码" << pRspInfo->ErrorID  ;
 		LOG(INFO) << "错误信息" << pRspInfo->ErrorMsg  ;
 	}
+
 	if (pInputOrder != nullptr) {
 		string insId = pInputOrder->InstrumentID;
 		int reqId = pInputOrder->RequestID;
@@ -990,13 +1035,17 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 			}
 		}
 		else {
-			if (slipperyInsStateMap.find(insId) != slipperyInsStateMap.end()) {
-				auto state = slipperyInsStateMap.find(insId)->second;
-				state->updateOnResp(SlipperyInsState::ORDER_FAILED, reqId);
+			if (slipperyInsStateMap[insId].find(reqId) != slipperyInsStateMap[insId].end()) {
+				// ORDER_FAILED是终态，重新下单reqId会更新
+				slipperyInsStateMap[insId][reqId]->updateOnResp(SlipperyInsState::ORDER_FAILED, reqId);
 			}
 			else {
 				// NOT POSSIBLE
-				slipperyInsStateMap[insId] = new SlipperyInsState(SlipperyInsState::ORDER_FAILED, reqId);
+				slipperyInsStateMap[insId][reqId] = new SlipperyInsState(SlipperyInsState::ORDER_FAILED, reqId);
+			}
+			//  如果处于第二部分报单的第三阶段，call slipPhaseCProcess，继续检查slipperyInsStateMap其它合约
+			if (curPhase == SlipperyPhase::PHASE_3) {
+				slipPhaseCProcess();
 			}
 		}
 	}
