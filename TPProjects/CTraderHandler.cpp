@@ -81,7 +81,7 @@ double CTraderHandler::choosePrice(CThostFtdcDepthMarketDataField* latestInfo) {
 	}
 	case(SlipperyPhase::PHASE_3): {
 		// 对手价加高
-		price = latestInfo->BidPrice1 + 0.0001;
+		price = latestInfo->BidPrice1 + atof(getConfig("config", "premium").c_str());
 		break;
 	}
 	}
