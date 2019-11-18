@@ -142,6 +142,7 @@ public:
 		CThostFtdcRspInfoField* pRspInfo);
 	void actionIfSlipperyTraded(string instrumentId, int reqId);
 	void actionIfSlipperyCanceled(string instrumentId, int reqId);
+	void printSlipperyInsStateMap();
 	
 private:
 	CThostFtdcTraderApi* pUserTraderApi;

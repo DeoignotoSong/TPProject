@@ -363,6 +363,8 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 			for (auto orderIter = pair->second.begin(); orderIter != pair->second.end(); orderIter++) {
 				if (orderIter->second->getState() == SlipperyInsState::UNTRADED
 				|| orderIter->second->getState() == SlipperyInsState::RETRIVED) {
+					//下单前需要将旧的reqId从slipperyInsStateMap中删除
+					pair->second.erase(orderIter);
 					submitSlipperyOrder(instrumentId);
 				}
 				else {
@@ -378,7 +380,7 @@ void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 	int retry = 3;
 	while (retry-- > 0)
 	{
-		LOG(INFO) << instrumentId << "下单一次"  ;
+		LOG(INFO) << instrumentId << "下单一次 in Thread-" << this_thread::get_id()  ;
 		++orderReqIndex;
 		CThostFtdcInputOrderField order = composeSlipInputOrder(instrumentId);
 		result = pUserTraderApi->ReqOrderInsert(&order, orderReqIndex);
@@ -476,11 +478,24 @@ void CTraderHandler::slipPhaseCEntrance() {
 	LOG(INFO) << "=============Begin Second part PHASE_3=============";
 	curPhase = SlipperyPhase::PHASE_3;
 	slipPhaseCProcess();
+	startScanThread();
+}
+
+void CTraderHandler::printSlipperyInsStateMap() {
+	for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
+		LOG(INFO) << "所有合约活跃的报单状态如下\nInstrument: " << stateMap->first;
+		for (auto orderItem = stateMap->second.begin(); orderItem != stateMap->second.end(); orderItem++) {
+			LOG(INFO) << "\t\tReqId: " << orderItem->first << "--->" << "state: "<<orderItem->second->getState();
+		}
+	}
 }
 void CTraderHandler::slipPhaseCProcess() {
+	LOG(INFO) << "开始第三阶段检测";
+	printSlipperyInsStateMap();
 	bool orderSubmit = false;
 	for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
 		for (auto orderItem = stateMap->second.begin(); orderItem != stateMap->second.end(); orderItem++) {
+			LOG(INFO) << "Instrument " << stateMap->first << ", reqId is " << orderItem->first << ", state is " << orderItem->second->getState();
 			// 暂未match的报单, 撤回
 			if (orderItem->second->getState() == SlipperyInsState::ORDERED) {
 				cancelInstrument(orderItem->first);
@@ -673,21 +688,15 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
 	LOG(INFO) << "================================================================"  ;
-	LOG(INFO) << "OnRtnOrder is called"  ;
+	LOG(INFO) << "OnRtnOrder is called in Thread-" << this_thread::get_id();
 
 	string insId = pOrder->InstrumentID;
 	int reqId = pOrder->RequestID;
-	LOG(INFO) << "instrumentid is " << insId  ;
-	LOG(INFO) << "reqId is " << reqId;
-	LOG(INFO) << "OrderSubmitStatus is " << pOrder->OrderSubmitStatus  ;
-	LOG(INFO) << "OrderStatus is " << pOrder->OrderStatus  ;
-
-	LOG(INFO) << "OrderRef: " << pOrder->OrderRef;
-	LOG(INFO) << "OrderLocalID: " << pOrder->OrderLocalID;
-	LOG(INFO) << "OrderSysID: " << pOrder->OrderSysID;
-	LOG(INFO) << "OrderSource: " << pOrder->OrderSource;
-	LOG(INFO) << "SequenceNo: " << pOrder->SequenceNo;
-	LOG(INFO) << "FrontID: " << pOrder->FrontID;
+	LOG(INFO) << "\ninstrumentid is\t" << insId 
+		<< "\npOrder->RequestID is\t" << reqId
+		<< "\nOrderSubmitStatus is\t" << pOrder->OrderSubmitStatus 
+		<< "\nOrderStatus is\t" << pOrder->OrderStatus
+		<< "\nOrderLocalID is\t " << pOrder->OrderLocalID;
 	
 
 	// 报单成功
@@ -736,7 +745,7 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	// 报单自动撤销后回调发现：pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertRejected, pOrder->OrderStatus == THOST_FTDC_OST_Canceled
 	// 判断方法待明确
 	else if (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertRejected && pOrder->OrderStatus == THOST_FTDC_OST_Canceled) {
-		LOG(INFO) << "我们认为=撤单成功";
+		LOG(INFO) << "我们认为=报单成功后成交失败";
 		if (pOrder->RequestID <= auctionLastReqId) { // 判断该回调对应的req是集合竞价下单
 			if (auctionInsStateMap.find(pOrder->InstrumentID) != auctionInsStateMap.end()) {
 				auto insState = auctionInsStateMap.find(pOrder->InstrumentID)->second;
@@ -797,13 +806,12 @@ void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CT
 	LOG(INFO) << "================================================================"  ;	
 	LOG(INFO) << "OnRspOrderInsert is called"  ;
 	LOG(INFO) << "nRequestID: " << nRequestID;
-	LOG(INFO) << "nRequestID: " << nRequestID;
 	if (pRspInfo != nullptr) {
 		LOG(INFO) << "OnRspOrderInsert says it's failed"  ;
 		LOG(INFO) << "错误代码" << pRspInfo->ErrorID  ;
 		LOG(INFO) << "错误信息" << pRspInfo->ErrorMsg  ;
 	}
-	else if(pInputOrder != nullptr){
+	if(pInputOrder != nullptr){
 		// 但是结果中未有
 		LOG(INFO) << "pOrder.ReqId " << pInputOrder->RequestID << " order success";
 		LOG(INFO) << "OnRspOrderInsert says insert " << pInputOrder->InstrumentID << " order success"  ;
@@ -846,6 +854,7 @@ void CTraderHandler::scanSlipperyOrderState() {
 	}// 如果needScan == true，意味着仍有合约需要scan
 	else
 	{
+		LOG(INFO) << "Instrument " << insId << ", reqId " << reqId << ", need to be scanned";
 		CThostFtdcOrderField* order = slipperyRtnOrderMap[reqId];
 		CThostFtdcQryOrderField field = { 0 };
 		// 文档注释里说，“不写 BrokerID 可以收全所有报单。” 不懂什么意思
@@ -880,21 +889,20 @@ void CTraderHandler::actionIfSlipperyTraded(string instrumentId, int reqId) {
 	switch (curPhase)
 	{
 	case(SlipperyPhase::PHASE_1): {
-		LOG(INFO) << "第二部分报单阶段一成交";
+		LOG(INFO) << instrumentId <<"\treqId-"<<reqId<< "在第二部分阶段一成交";
 		break;
 	}
 	case(SlipperyPhase::PHASE_2): {
-		LOG(INFO) << "第二部分报单阶段二成交";
+		LOG(INFO) << instrumentId << "\treqId-" << reqId << "在第二部分报单阶段二成交";
 		break;
 	}
 	case(SlipperyPhase::PHASE_3): {
-		LOG(INFO) << "第二部分报单阶段三成交";
+		LOG(INFO) << instrumentId << "\treqId-" << reqId << "在第二部分报单阶段三成交";
 		break;
 	}
 	default:
 		break;
 	}
-	LOG(INFO) << instrumentId <<" 已成交";
 	if (slipperyInsStateMap[instrumentId].find(reqId) != slipperyInsStateMap[instrumentId].end()) {
 		auto insState = slipperyInsStateMap.find(instrumentId)->second;
 		// Traded是某一合约的终态，不需要check之前的状态
@@ -920,7 +928,7 @@ void CTraderHandler::actionIfSlipperyCanceled(string instrumentId, int reqId) {
 }
 
 void CTraderHandler::cancelInstrument(int reqId) {
-	LOG(INFO) << "撤回合约ReqId " << reqId;
+	LOG(INFO) << "(经过多次实验，该function不容易被触发) 主动撤回合约ReqId " << reqId;
 	if (slipperyRtnOrderMap.find(reqId) == slipperyRtnOrderMap.end()) {
 		LOG(ERROR) << "ReqId " << reqId << " 在slipperyRtnOrderMap中缺失";
 		return;
