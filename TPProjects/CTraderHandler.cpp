@@ -693,7 +693,7 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	// 报单成功
 	// 验证发现报单后第一次回调：pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertSubmitted, pOrder->OrderStatus == THOST_FTDC_OST_Unknown
 	// 判断方法待明确
-	if (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertSubmitted) {
+	if (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertSubmitted && pOrder->OrderStatus == THOST_FTDC_OST_Unknown) {
 		LOG(INFO) << "我们认为=报单成功";
 		if (pOrder->RequestID <= auctionLastReqId) {// 集合竞价订单回调
 			// auctionInsStateMap中存在
@@ -735,7 +735,7 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	// 撤单成功
 	// 报单自动撤销后回调发现：pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertRejected, pOrder->OrderStatus == THOST_FTDC_OST_Canceled
 	// 判断方法待明确
-	else if (pOrder->OrderStatus == THOST_FTDC_OST_Canceled) {
+	else if (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertRejected && pOrder->OrderStatus == THOST_FTDC_OST_Canceled) {
 		LOG(INFO) << "我们认为=撤单成功";
 		if (pOrder->RequestID <= auctionLastReqId) { // 判断该回调对应的req是集合竞价下单
 			if (auctionInsStateMap.find(pOrder->InstrumentID) != auctionInsStateMap.end()) {
@@ -773,6 +773,9 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 				slipPhaseCProcess();
 			}
 		}
+	}
+	else if (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_Accepted && pOrder->OrderStatus == THOST_FTDC_OST_NoTradeQueueing) {
+		LOG(INFO) << "我们认为=报单在等待成交";
 	}
 	else {
 		LOG(INFO) << "我们未处理该状态";

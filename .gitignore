@@ -32,9 +32,11 @@
 Debug/
 x64/
 .vs/
+
 TPProjects/flow/
 TPProjects/logs/
 config.ini
+TPProjects/*.log
 /CTPdoc
 /easyloggingpp-9.96.7
 /TPProjects/myeasylog.log
