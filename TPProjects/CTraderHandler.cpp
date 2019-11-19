@@ -511,11 +511,8 @@ void CTraderHandler::slipPhaseCProcess() {
 			else if (orderItem->second->getState() == SlipperyInsState::RETRIVED
 				|| orderItem->second->getState() == SlipperyInsState::UNTRADED
 				|| orderItem->second->getState() == SlipperyInsState::ORDER_FAILED) {
-				LOG(INFO) << "slipPhaseCProcess LOCKED for " << stateMap->first;
 				delList.push_back(orderItem->first);
-				//slipperyInsStateMap[stateMap->first].erase(orderItem->first);
 				submitSlipperyOrder(stateMap->first);
-				LOG(INFO) << "slipPhaseCProcess UNLOCKED for " << stateMap->first;
 				orderSubmit = true;
 				break;
 			}
@@ -730,6 +727,7 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 			}
 		}// 滑点订单回调
 		else{
+			LOG(INFO) << "log reqId-" << reqId << " into slipperyRtnOrderMap";
 			slipperyRtnOrderMap[reqId] = pOrder;
 			//slipperyInsStateMap中存在
 			if (slipperyInsStateMap[insId].find(pOrder->RequestID) != slipperyInsStateMap[insId].end()) {
@@ -838,9 +836,11 @@ void CTraderHandler::scanSlipperyOrderState() {
 	LOG(INFO) << "scanSlipperyOrderState locked";
 	for (auto it = slipperyInsStateMap.begin(); it != slipperyInsStateMap.end(); it++) {
 		for (auto itemIt = it->second.begin(); itemIt != it->second.end(); itemIt++) {
-			if (itemIt->second->getState() != SlipperyInsState::STARTED
-				&& itemIt->second->getState() != SlipperyInsState::ORDERED
-				&& itemIt->second->getState() != SlipperyInsState::RETRIVED) {//仅三状态需要scan
+			if (itemIt->second->getState() != SlipperyInsState::ORDERED
+				// && itemIt->second->getState() != SlipperyInsState::STARTED
+				&& itemIt->second->getState() != SlipperyInsState::RETRIVED) {
+				// 仅两状态需要scan
+				// STARTED状态不查询，因为该状态下还未形成报单，没有对应的order信息可获取
 				continue;
 			}
 			else { //只需要找到一个需要scan的合约就进行Query，等待回调函数中再call该函数
@@ -864,6 +864,7 @@ void CTraderHandler::scanSlipperyOrderState() {
 	else
 	{
 		LOG(INFO) << "Instrument " << insId << ", reqId " << reqId << ", need to be scanned";
+		LOG(INFO) << "slipperyRtnOrderMap.size() = "<<slipperyRtnOrderMap.size();
 		CThostFtdcOrderField* order = slipperyRtnOrderMap[reqId];
 		CThostFtdcQryOrderField field = { 0 };
 		// 文档注释里说，“不写 BrokerID 可以收全所有报单。” 不懂什么意思
@@ -993,6 +994,7 @@ void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspIn
 		}
 		// 否则记录订单信息，用于撤单
 		else {
+			LOG(INFO) << "log reqId-" << nRequestID << " into slipperyRtnOrderMap";
 			slipperyRtnOrderMap[nRequestID] = pOrder;
 		}
 	}
