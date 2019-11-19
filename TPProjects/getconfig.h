@@ -4,7 +4,6 @@
 #include <conio.h>
 #include <iostream>
 #include <locale>
-#include <string>
 #include <fstream>
 #include <conio.h>
 #include <time.h>

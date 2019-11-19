@@ -330,6 +330,7 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 	}
 	// 记录当前处于何阶段
 	curPhase = phase;
+	vector<int> delList;
 	for (auto iter = slipperyInsOrderMap.begin(); iter != slipperyInsOrderMap.end(); iter++) {
 		string instrumentId = iter->first;
 		InstrumentOrderInfo orderInfo = iter->second;
@@ -364,13 +365,16 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 				if (orderIter->second->getState() == SlipperyInsState::UNTRADED
 				|| orderIter->second->getState() == SlipperyInsState::RETRIVED) {
 					//下单前需要将旧的reqId从slipperyInsStateMap中删除
-					pair->second.erase(orderIter);
+					delList.push_back(orderIter->first);
 					submitSlipperyOrder(instrumentId);
 				}
 				else {
 					LOG(INFO) << "阶段二中，订单状态为："<< orderIter->second->getState() <<", 不下单";
 				}
-			}			
+			}
+			for (auto delIter = delList.begin(); delIter != delList.end(); ++delIter) {
+				pair->second.erase(*delIter);
+			}
 		}
 	}
 }
@@ -494,6 +498,8 @@ void CTraderHandler::slipPhaseCProcess() {
 	printSlipperyInsStateMap();
 	bool orderSubmit = false;
 	for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
+		vector<int> delList;
+		mtx.lock();
 		for (auto orderItem = stateMap->second.begin(); orderItem != stateMap->second.end(); orderItem++) {
 			LOG(INFO) << "Instrument " << stateMap->first << ", reqId is " << orderItem->first << ", state is " << orderItem->second->getState();
 			// 暂未match的报单, 撤回
@@ -505,16 +511,19 @@ void CTraderHandler::slipPhaseCProcess() {
 			else if (orderItem->second->getState() == SlipperyInsState::RETRIVED
 				|| orderItem->second->getState() == SlipperyInsState::UNTRADED
 				|| orderItem->second->getState() == SlipperyInsState::ORDER_FAILED) {
-				mtx.lock();
 				LOG(INFO) << "slipPhaseCProcess LOCKED for " << stateMap->first;
-				slipperyInsStateMap[stateMap->first].erase(orderItem->first);
+				delList.push_back(orderItem->first);
+				//slipperyInsStateMap[stateMap->first].erase(orderItem->first);
 				submitSlipperyOrder(stateMap->first);
-				mtx.unlock();
 				LOG(INFO) << "slipPhaseCProcess UNLOCKED for " << stateMap->first;
 				orderSubmit = true;
 				break;
 			}
 		}
+		for (auto delIter = delList.begin(); delIter != delList.end(); delIter++) {
+			slipperyInsStateMap[stateMap->first].erase(*delIter);
+		}
+		mtx.unlock();
 		if (orderSubmit) {
 			break;
 		}

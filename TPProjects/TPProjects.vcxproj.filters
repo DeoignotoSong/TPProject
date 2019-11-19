@@ -54,6 +54,9 @@
     <ClCompile Include="easylogging++.cc">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="InstrumentRequest.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMdHandler.h">
@@ -99,6 +102,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="easylogging++.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="InstrumentRequest.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

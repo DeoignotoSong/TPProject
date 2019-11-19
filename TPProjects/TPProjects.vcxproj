@@ -159,6 +159,7 @@
     <ClCompile Include="getconfig.cpp" />
     <ClCompile Include="InstrumentInfo.cpp" />
     <ClCompile Include="InstrumentOrderInfo.cpp" />
+    <ClCompile Include="InstrumentRequest.cpp" />
     <ClCompile Include="SlipperyInsState.cpp" />
     <ClCompile Include="SlipperyPhase.cpp" />
     <ClCompile Include="Timer.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="InstrumentInfo.h" />
     <ClInclude Include="InstrumentOrderInfo.h" />
     <ClInclude Include="AuctionInsState.h" />
+    <ClInclude Include="InstrumentRequest.h" />
     <ClInclude Include="SlipperyInsState.h" />
     <ClInclude Include="ThostFtdcMdApi.h" />
     <ClInclude Include="ThostFtdcTraderApi.h" />
