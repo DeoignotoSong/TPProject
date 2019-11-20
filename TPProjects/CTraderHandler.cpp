@@ -64,7 +64,7 @@ CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumen
 	int vol = 1;
 	double price = choosePrice(lastestInfo);
 	int requestId = this->orderReqIndex;
-	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFD, requestId);
+	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_IOC, requestId);
 }
 
 double CTraderHandler::choosePrice(CThostFtdcDepthMarketDataField* latestInfo) {
@@ -487,9 +487,9 @@ void CTraderHandler::slipPhaseCEntrance() {
 
 void CTraderHandler::printSlipperyInsStateMap() {
 	for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
-		LOG(INFO) << "所有合约活跃的报单状态如下\nInstrument: " << stateMap->first;
+		LOG(DEBUG) << "所有合约活跃的报单状态如下\nInstrument: " << stateMap->first;
 		for (auto orderItem = stateMap->second.begin(); orderItem != stateMap->second.end(); orderItem++) {
-			LOG(INFO) << "\t\tReqId: " << orderItem->first << "--->" << "state: "<<orderItem->second->getState();
+			LOG(DEBUG) << "\t\tReqId: " << orderItem->first << "--->" << "state: "<<orderItem->second->getState();
 		}
 	}
 }
@@ -615,8 +615,6 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 	else {
 		LOG(DEBUG) <<"GET Nothing as resp when nRequest: "<< nRequestID  ;
 	}
-
-	LOG(DEBUG) << "================================================================"  ;
 	// 第一轮查询
 	if (!startPool) {
 		// 如果nRequestID对应请求不是第一次回调，直接返回
@@ -654,9 +652,9 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 			// 如果是nRequestID对应请求的第一次回调，首先删除
 			onceQueryMarker.erase(onceQueryMarker.find(nRequestID));
 			insQueryId++;
-			string instrument = allInstruments.at((insQueryId % allInstruments.size()));
+			string instrument = allInstruments.at(insQueryId % allInstruments.size());
 			// 用于QPS控制
-			std::this_thread::sleep_for(chrono::milliseconds(500));
+			std::this_thread::sleep_for(chrono::milliseconds(1000));
 			queryDepthMarketData(instrument, getExchangeId(instrument));
 		}
 	}
@@ -694,7 +692,7 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
 	LOG(INFO) << "================================================================"  ;
-	LOG(INFO) << "OnRtnOrder is called in Thread-" << this_thread::get_id();
+	LOG(DEBUG) << "OnRtnOrder is called in Thread-" << this_thread::get_id();
 
 	string insId = pOrder->InstrumentID;
 	int reqId = pOrder->RequestID;
@@ -727,7 +725,6 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 			}
 		}// 滑点订单回调
 		else{
-			LOG(INFO) << "log reqId-" << reqId << " into slipperyRtnOrderMap";
 			slipperyRtnOrderMap[reqId] = pOrder;
 			//slipperyInsStateMap中存在
 			if (slipperyInsStateMap[insId].find(pOrder->RequestID) != slipperyInsStateMap[insId].end()) {
@@ -833,7 +830,6 @@ void CTraderHandler::scanSlipperyOrderState() {
 	string insId;
 	int reqId;
 	mtx.lock();
-	LOG(INFO) << "scanSlipperyOrderState locked";
 	for (auto it = slipperyInsStateMap.begin(); it != slipperyInsStateMap.end(); it++) {
 		for (auto itemIt = it->second.begin(); itemIt != it->second.end(); itemIt++) {
 			if (itemIt->second->getState() != SlipperyInsState::ORDERED
@@ -855,7 +851,6 @@ void CTraderHandler::scanSlipperyOrderState() {
 		}
 	}
 	mtx.unlock();
-	LOG(INFO) << "scanSlipperyOrderState unlocked";
 	// 如果needScan == false, 意味着slipperyInsStateMap中所有的合约处于NO_INFO, ORDER_FAILED, DONE状态
 	// 已完成第二部分报单任务, 该线程可结束
 	if (!needScan) {
@@ -863,8 +858,6 @@ void CTraderHandler::scanSlipperyOrderState() {
 	}// 如果needScan == true，意味着仍有合约需要scan
 	else
 	{
-		LOG(INFO) << "Instrument " << insId << ", reqId " << reqId << ", need to be scanned";
-		LOG(INFO) << "slipperyRtnOrderMap.size() = "<<slipperyRtnOrderMap.size();
 		CThostFtdcOrderField* order = slipperyRtnOrderMap[reqId];
 		CThostFtdcQryOrderField field = { 0 };
 		// 文档注释里说，“不写 BrokerID 可以收全所有报单。” 不懂什么意思
@@ -881,14 +874,16 @@ void CTraderHandler::scanSlipperyOrderState() {
 			}
 			else {
 				if (result == -1) {
-					LOG(INFO) << "ReqQryOrder encountered 网络连接失败"  ;
+					LOG(DEBUG) << "ReqQryOrder encountered 网络连接失败"  ;
 				}
 				this_thread::sleep_for(chrono::milliseconds(1000));
 			}
 		}
 		// 此处经常result=-2，表示未处理请求超过许可数
 		if (result < 0) {
-			LOG(INFO) << insId << " 订单状态查询失败, result = " << result  ;
+			LOG(DEBUG) << insId << " 订单状态查询失败, result = " << result  ;
+			// then wait for a while
+			this_thread::sleep_for(chrono::milliseconds(1000));
 		}
 		// 暂停0.2s 用来控QPS
 		this_thread::sleep_for(chrono::milliseconds(200));
@@ -978,7 +973,6 @@ void CTraderHandler::cancelInstrument(int reqId) {
 // 仅针对滑点订单，会发起报单查询
 // 报单查询请求。当客户端发出报单查询指令后，交易托管系统返回响应时，该方法会被调用
 void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast) {
-	LOG(INFO) << "OnRspQryOrder is called"  ;
 	if (pRspInfo != nullptr) {
 		LOG(INFO) << "错误代码：" << pRspInfo->ErrorID  ;
 		LOG(INFO) << "错误信息：" << pRspInfo->ErrorMsg  ;
@@ -994,7 +988,6 @@ void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspIn
 		}
 		// 否则记录订单信息，用于撤单
 		else {
-			LOG(INFO) << "log reqId-" << nRequestID << " into slipperyRtnOrderMap";
 			slipperyRtnOrderMap[nRequestID] = pOrder;
 		}
 	}
@@ -1121,20 +1114,6 @@ void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId
 		}
 	}
 }
-
-
-///请求查询行情
-/**
-0，代表成功。
--1，表示网络连接失败；
--2，表示未处理请求超过许可数；
--3，表示每秒发送请求数超过许可数。
-int CTraderHandler::ReqQryDepthMarketData(CThostFtdcQryDepthMarketDataField* pQryDepthMarketData, int nRequestID) {
-	int result = pUserTraderApi->ReqQryDepthMarketData(pQryDepthMarketData, requestIndex++);
-	LOG(INFO) << " query resCode:" << result  ;
-	return result;
-}
-**/
 
 void CTraderHandler::OnRspQryInvestorPosition(
 	CThostFtdcInvestorPositionField* pInvestorPosition,
