@@ -50,7 +50,7 @@ CThostFtdcInputOrderField CTraderHandler::composeAuctionInputOrder(string instru
 	int vol = orderInfo.getVol();
 	double price = lastestInfo->OpenPrice;
 	int requestId = this->orderReqIndex;
-	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFD, requestId);
+	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFA, requestId);
 }
 
 // 构建滑点报单
@@ -64,7 +64,7 @@ CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumen
 	int vol = 1;
 	double price = choosePrice(lastestInfo);
 	int requestId = this->orderReqIndex;
-	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFD, requestId);
+	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_IOC, requestId);
 }
 
 double CTraderHandler::choosePrice(CThostFtdcDepthMarketDataField* latestInfo) {
