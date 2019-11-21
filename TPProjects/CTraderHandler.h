@@ -153,6 +153,8 @@ private:
 	bool startPool = false;
 	SlipperyPhase::PHASE_ENUM curPhase = SlipperyPhase::OUT_OF_PHASE;
 	int auctionLastReqId = 0;
+	int phaseILastReqId = 0;
+	int phaseIILastReqId = 0;
 	vector<string> allInstruments;
 	// 用于记录 合约号与交易所的对应关系
 	unordered_map<string, string> instrumentsExchange;

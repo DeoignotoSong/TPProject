@@ -352,6 +352,7 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 			for (size_t i = 0; i < orderInfo.getVol(); i++)
 			{
 				submitSlipperyOrder(instrumentId);
+				phaseILastReqId = orderReqIndex;
 			}
 		}
 		// 第二阶段，只对未成交的部分合约处理
@@ -367,6 +368,7 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 					//下单前需要将旧的reqId从slipperyInsStateMap中删除
 					delList.push_back(orderIter->first);
 					submitSlipperyOrder(instrumentId);
+					phaseIILastReqId = orderReqIndex;
 				}
 				else {
 					LOG(INFO) << "阶段二中，订单状态为："<< orderIter->second->getState() <<", 不下单";
@@ -527,6 +529,8 @@ void CTraderHandler::slipPhaseCProcess() {
 	}
 	// 如果没有合约需要改变，该线程关闭
 	if (!orderSubmit) {
+		printSlipperyInsStateMap();
+		LOG(INFO) << "第三阶段完成，close";
 		terminate();
 	}
 }
@@ -892,22 +896,14 @@ void CTraderHandler::scanSlipperyOrderState() {
 }
 
 void CTraderHandler::actionIfSlipperyTraded(string instrumentId, int reqId) {
-	switch (curPhase)
-	{
-	case(SlipperyPhase::PHASE_1): {
+    if(reqId <= phaseILastReqId){
 		LOG(INFO) << instrumentId <<"\treqId-"<<reqId<< "在第二部分阶段一成交";
-		break;
 	}
-	case(SlipperyPhase::PHASE_2): {
+	else if(reqId <= phaseIILastReqId){
 		LOG(INFO) << instrumentId << "\treqId-" << reqId << "在第二部分报单阶段二成交";
-		break;
 	}
-	case(SlipperyPhase::PHASE_3): {
+	else {
 		LOG(INFO) << instrumentId << "\treqId-" << reqId << "在第二部分报单阶段三成交";
-		break;
-	}
-	default:
-		break;
 	}
 	if (slipperyInsStateMap[instrumentId].find(reqId) != slipperyInsStateMap[instrumentId].end()) {
 		auto insState = slipperyInsStateMap.find(instrumentId)->second;
