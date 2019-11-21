@@ -732,7 +732,7 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 				if (insState->getLatestReqId() == pOrder->RequestID // 回调对应的reqId == 最新状态的reqId
 					&& (insState->getState() == SlipperyInsState::STATE_ENUM::STARTED
 						|| insState->getState() == SlipperyInsState::STATE_ENUM::RETRIVED))  // 要求最近一次状态是UNSTARTED或者RETRIVED
-				{ // 更新slipperyInsStateMap中的state 和 respId
+				{ // 更新slipperyInsStateMap中的state 和 respId 
 					insState->updateOnResp(SlipperyInsState::STATE_ENUM::ORDERED, pOrder->RequestID);
 				}
 			}
@@ -748,7 +748,8 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 	// 撤单成功
 	// 报单自动撤销后回调发现：pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertRejected, pOrder->OrderStatus == THOST_FTDC_OST_Canceled
 	// 判断方法待明确
-	else if (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertRejected && pOrder->OrderStatus == THOST_FTDC_OST_Canceled) {
+	else if ((pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertRejected && pOrder->OrderStatus == THOST_FTDC_OST_Canceled)
+		|| (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_InsertSubmitted && pOrder->OrderStatus == THOST_FTDC_OST_Canceled)) {
 		LOG(INFO) << "我们认为=报单成功后成交失败";
 		if (pOrder->RequestID <= auctionLastReqId) { // 判断该回调对应的req是集合竞价下单
 			if (auctionInsStateMap.find(pOrder->InstrumentID) != auctionInsStateMap.end()) {

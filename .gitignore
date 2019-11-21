@@ -32,7 +32,7 @@
 Debug/
 x64/
 .vs/
-
+document/
 TPProjects/flow/
 TPProjects/logs/
 config.ini
