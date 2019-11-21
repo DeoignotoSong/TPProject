@@ -489,15 +489,15 @@ void CTraderHandler::slipPhaseCEntrance() {
 
 void CTraderHandler::printSlipperyInsStateMap() {
 	for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
-		LOG(DEBUG) << "所有合约活跃的报单状态如下\nInstrument: " << stateMap->first;
+		LOG(INFO) << "所有合约活跃的报单状态如下\nInstrument: " << stateMap->first;
 		for (auto orderItem = stateMap->second.begin(); orderItem != stateMap->second.end(); orderItem++) {
-			LOG(DEBUG) << "\t\tReqId: " << orderItem->first << "--->" << "state: "<<orderItem->second->getState();
+			LOG(INFO) << "\t\tReqId: " << orderItem->first << "--->" << "state: "<<orderItem->second->getState();
 		}
 	}
 }
 void CTraderHandler::slipPhaseCProcess() {
 	LOG(INFO) << "开始第三阶段检测";
-	printSlipperyInsStateMap();
+	//printSlipperyInsStateMap();
 	bool orderSubmit = false;
 	for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
 		vector<int> delList;
