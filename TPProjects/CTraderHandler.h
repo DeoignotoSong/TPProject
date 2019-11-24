@@ -21,6 +21,10 @@ using namespace std;
 
 class CTraderHandler : public CThostFtdcTraderSpi {
 mutex mtx;
+mutex reqQueueMtx;
+// when unRepliedReq less than 0, it means there is no unRepliedReq, and we can send a request
+volatile int unRepliedReq = -1;
+
 public:
 	CTraderHandler(CThostFtdcTraderApi* pUserTraderApi);
 	~CTraderHandler();
@@ -143,6 +147,8 @@ public:
 	void actionIfSlipperyTraded(string instrumentId, int reqId);
 	void actionIfSlipperyCanceled(string instrumentId, int reqId);
 	void printSlipperyInsStateMap();
+	void waitForProcess();
+	void releaseProcessLock(int reqId);
 	
 private:
 	CThostFtdcTraderApi* pUserTraderApi;

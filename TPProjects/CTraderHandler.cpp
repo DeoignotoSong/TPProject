@@ -384,14 +384,16 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 	int result = 0;
 	int retry = 3;
+	waitForProcess();
 	while (retry-- > 0)
 	{
-		LOG(INFO) << instrumentId << "下单一次 in Thread-" << this_thread::get_id()  ;
 		++orderReqIndex;
+		LOG(INFO) << instrumentId << "下单一次 in Thread-" << this_thread::get_id();
 		CThostFtdcInputOrderField order = composeSlipInputOrder(instrumentId);
 		result = pUserTraderApi->ReqOrderInsert(&order, orderReqIndex);
 		if (0 == result) {
 			LOG(INFO) << "Order ReqId: "<< orderReqIndex;
+			unRepliedReq = orderReqIndex;
 			slipperyInsStateMap[instrumentId][orderReqIndex] =
 				new SlipperyInsState(SlipperyInsState::STATE_ENUM::STARTED, orderReqIndex);
 			break;
@@ -405,6 +407,7 @@ void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 		}
 	}
 	if (result < 0) {
+		unRepliedReq = -1;
 		LOG(INFO) << instrumentId << "下单失败"  ;
 	}
 	this_thread::sleep_for(chrono::milliseconds(200));
@@ -495,6 +498,24 @@ void CTraderHandler::printSlipperyInsStateMap() {
 		}
 	}
 }
+
+void CTraderHandler::waitForProcess()
+{
+	reqQueueMtx.lock();
+	while (unRepliedReq >= 0) {
+		this_thread::sleep_for(chrono::milliseconds(200));
+	}
+	unRepliedReq = 0;
+	reqQueueMtx.unlock();
+}
+
+void CTraderHandler::releaseProcessLock(int reqId)
+{
+	if (unRepliedReq == reqId) {
+		unRepliedReq = -1;
+	}
+}
+
 void CTraderHandler::slipPhaseCProcess() {
 	LOG(INFO) << "开始第三阶段检测";
 	//printSlipperyInsStateMap();
@@ -615,6 +636,7 @@ void CTraderHandler::OnRspQryDepthMarketData(CThostFtdcDepthMarketDataField* pDe
 			instrumentInfoMap.insert(pair<string, InstrumentInfo>(pDepthMarketData->InstrumentID, info));
 			//LOG(INFO) << "Add the info of " << pDepthMarketData->InstrumentID  ;
 		}
+		releaseProcessLock(nRequestID);
 	}
 	else {
 		LOG(DEBUG) <<"GET Nothing as resp when nRequest: "<< nRequestID  ;
@@ -697,9 +719,9 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
 	LOG(INFO) << "================================================================"  ;
 	LOG(DEBUG) << "OnRtnOrder is called in Thread-" << this_thread::get_id();
-
 	string insId = pOrder->InstrumentID;
 	int reqId = pOrder->RequestID;
+	releaseProcessLock(reqId);
 	LOG(INFO) << "\ninstrumentid is\t" << insId 
 		<< "\npOrder->RequestID is\t" << reqId
 		<< "\nOrderSubmitStatus is\t" << pOrder->OrderSubmitStatus 
@@ -824,7 +846,7 @@ void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CT
 		// 但是结果中未有
 		LOG(INFO) << "pOrder.ReqId " << pInputOrder->RequestID << " order success";
 		LOG(INFO) << "OnRspOrderInsert says insert " << pInputOrder->InstrumentID << " order success"  ;
-
+		releaseProcessLock(pInputOrder->RequestID);
 	}
 	
 	LOG(INFO) << "================================================================"  ;
@@ -872,9 +894,11 @@ void CTraderHandler::scanSlipperyOrderState() {
 		strcpy_s(field.OrderSysID, order->OrderSysID);
 		int result = 0;
 		int retry = 3;
+		waitForProcess();
 		while (--retry > 0) {
 			result = pUserTraderApi->ReqQryOrder(&field, ++orderReqIndex);
 			if (0 == result) {
+				unRepliedReq = orderReqIndex;
 				break;
 			}
 			else {
@@ -886,7 +910,8 @@ void CTraderHandler::scanSlipperyOrderState() {
 		}
 		// 此处经常result=-2，表示未处理请求超过许可数
 		if (result < 0) {
-			LOG(DEBUG) << insId << " 订单状态查询失败, result = " << result  ;
+			LOG(DEBUG) << insId << " 订单状态查询失败, result = " << result;
+			unRepliedReq = -1;
 			// then wait for a while
 			this_thread::sleep_for(chrono::milliseconds(1000));
 		}
@@ -947,9 +972,11 @@ void CTraderHandler::cancelInstrument(int reqId) {
 	strcpy_s(field.ExchangeID, pOrder->ExchangeID);
 	int result = 0;
 	int retry = 3;
+	waitForProcess();
 	while (retry-- > 0) {
 		result = pUserTraderApi->ReqOrderAction(&field, ++orderReqIndex);
 		if (0 == result) {
+			unRepliedReq = orderReqIndex;
 			// 由于仅在订单处于ORDERED状态下，才需要发起撤单操作
 			// 认为撤单中也是处于ORDERED状态下，所以成功发起撤单后不需要更改状态
 			break;
@@ -963,6 +990,7 @@ void CTraderHandler::cancelInstrument(int reqId) {
 	}
 	// 重试三次，撤单指令发送失败
 	if (result < 0) {
+		unRepliedReq = -1;
 		LOG(INFO) << "重试三次，撤单 " << reqId << " 指令发送失败"  ;
 	}
 }
@@ -975,6 +1003,7 @@ void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspIn
 		LOG(INFO) << "错误信息：" << pRspInfo->ErrorMsg  ;
 	}
 	if (pOrder != nullptr) {
+		releaseProcessLock(nRequestID);
 		string insId = pOrder->InstrumentID;
 		// 已成交
 		if (THOST_FTDC_OST_AllTraded == pOrder->OrderStatus) {
@@ -1005,13 +1034,12 @@ void CTraderHandler::OnRspOrderAction(CThostFtdcOrderActionField* pOrderAction, 
 	if (pOrderAction != nullptr) {
 		string insId = pOrderAction->InstrumentID;
 		// 理论上不会被调到，暂不写处理逻辑
-		LOG(INFO) << insId  ;
+		LOG(INFO) << insId;
+		releaseProcessLock(pOrderAction->RequestID);
 	}
 }
 
-void CTraderHandler::OnErrRtnOrderAction(
-	CThostFtdcOrderActionField* pOrderAction,
-	CThostFtdcRspInfoField* pRspInfo) {
+void CTraderHandler::OnErrRtnOrderAction(CThostFtdcOrderActionField* pOrderAction, CThostFtdcRspInfoField* pRspInfo) {
 	LOG(INFO) << "OnErrRtnOrderAction is called"  ;
 	if (pRspInfo != nullptr) {
 		LOG(INFO) << "错误代码：" << pRspInfo->ErrorID  ;
@@ -1020,7 +1048,8 @@ void CTraderHandler::OnErrRtnOrderAction(
 	if (pOrderAction != nullptr) {
 		string insId = pOrderAction->InstrumentID;
 		// 理论上不会被调到，暂不写处理逻辑
-		LOG(INFO) << insId  ;
+		LOG(INFO) << insId;
+		releaseProcessLock(pOrderAction->RequestID);
 	}
 }
 
@@ -1060,6 +1089,7 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 				slipPhaseCProcess();
 			}
 		}
+		releaseProcessLock(reqId);
 	}
 	LOG(INFO) << "================================================================"  ;
 }
@@ -1081,34 +1111,42 @@ void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmF
 
 void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId) {
 	LOG(DEBUG) << "queryDepthMarketData instrumentID: " << instrumentId  ;
-	thread::id id = this_thread::get_id();
 	CThostFtdcQryDepthMarketDataField instrumentField = { 0 };
-
 	strcpy_s(instrumentField.InstrumentID, instrumentId.c_str());
-
 	strcpy_s(instrumentField.ExchangeID, exchangeId.c_str());
-
 	// 投资者结算结果确认后，查询合约深度行情
 	// 查询合约深度行情回调函数：OnRspQryDepthMarketData
-	int result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, ++queryReqIndex);
-	if (0 == result) {
-		// 发送查询成功
-		onceQueryMarker.insert(pair<int, string>(queryReqIndex, instrumentId));
-		return;
-	}
-	else {
-		// 发送查询失败
-		if (-1 == result) {
-			//-1，表示网络连接失败
-			LOG(DEBUG) << "网络连接失败，导致合约信息查询失败"  ;
+	waitForProcess();
+	int result = 0;
+	int retry = 3;
+	while (--retry >= 0) {
+		++queryReqIndex;
+		result = pUserTraderApi->ReqQryDepthMarketData(&instrumentField, queryReqIndex);
+		if (0 == result) {
+			// 发送查询成功
+			unRepliedReq = queryReqIndex;
+			LOG(INFO) << "set unRepliedReq as " << queryReqIndex;
+			unRepliedReq = queryReqIndex;
+			onceQueryMarker.insert(pair<int, string>(queryReqIndex, instrumentId));
+			return;
 		}
 		else {
-			// -2，表示未处理请求超过许可数；
-			// -3，表示每秒发送请求数超过许可数
-			// 等待1s 后重试
-			this_thread::sleep_for(chrono::milliseconds(1000));
-			queryDepthMarketData(instrumentId, exchangeId);
+			// 发送查询失败
+			if (-1 == result) {
+				//-1，表示网络连接失败
+				LOG(DEBUG) << "网络连接失败，导致合约信息查询失败";
+			}
+			else {
+				// -2，表示未处理请求超过许可数；
+				// -3，表示每秒发送请求数超过许可数
+				// 等待1s 后重试
+				this_thread::sleep_for(chrono::milliseconds(1000));
+				//queryDepthMarketData(instrumentId, exchangeId);
+			}
 		}
+	}
+	if (result < 0) {
+		unRepliedReq = -1;
 	}
 }
 
