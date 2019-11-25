@@ -512,6 +512,7 @@ void CTraderHandler::waitForProcess()
 void CTraderHandler::releaseProcessLock(int reqId)
 {
 	if (unRepliedReq == reqId) {
+		LOG(INFO) << "pre UnReplied ReqId is " << unRepliedReq << ", now release it";
 		unRepliedReq = -1;
 	}
 }
