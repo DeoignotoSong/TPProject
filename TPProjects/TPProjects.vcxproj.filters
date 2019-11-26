@@ -54,6 +54,12 @@
     <ClCompile Include="easylogging++.cc">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Log.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Output2FILE.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CMdHandler.h">
@@ -99,6 +105,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="easylogging++.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Log.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Output2FILE.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "easylogging++.h"
+#include "Log.h"
 
 using namespace std;
 
@@ -91,10 +92,10 @@ public:
 	// load 需要集合竞价的文件
 	vector<string> loadInstruments();
 	// 开启线程轮询开盘价、对手价
-	bool startPollThread();
+	bool startQueryThread();
 	// 开启线程查询订单状态
 	bool startScanThread();
-	void poll();
+	void backgroundQuery();
 	// 开启线程滑点下单第一部分
 	bool startSlipPhaseAThread();
 	// 开启线程滑点下单第二部分
@@ -156,7 +157,7 @@ private:
 	int queryReqIndex;
 	int orderReqIndex;
 	int insQueryId = 0;
-	bool startPool = false;
+	bool runningFlag = false;
 	SlipperyPhase::PHASE_ENUM curPhase = SlipperyPhase::OUT_OF_PHASE;
 	int auctionLastReqId = 0;
 	int phaseILastReqId = 0;

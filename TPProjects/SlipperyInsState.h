@@ -1,5 +1,6 @@
 #pragma once
 class SlipperyInsState {
+	std::ostringstream stream;
 public:
 	enum STATE_ENUM
 	{
