@@ -15,12 +15,14 @@
 #include <thread>    // std::thread, std::this_thread::sleep_for
 #include <unordered_map>
 #include <mutex>
-#include "easylogging++.h"
-#include "Log.h"
-
+#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#define LOG_DEBUG(str) logDebug(__FILENAME__, __LINE__, str)
+#define LOG_INFO(str) logInfo(__FILENAME__, __LINE__, str)
+#define LOG_ERROR(str) logError(__FILENAME__, __LINE__, str)
 using namespace std;
 
 class CTraderHandler : public CThostFtdcTraderSpi {
+mutex logMtx;
 mutex mtx;
 mutex reqQueueMtx;
 // when unRepliedReq less than 0, it means there is no unRepliedReq, and we can send a request
@@ -150,6 +152,10 @@ public:
 	void printSlipperyInsStateMap();
 	void waitForProcess();
 	void releaseProcessLock(int reqId);
+	void logDebug(const char* file, int line, ostringstream& stream);
+	void logInfo(const char* file, int line, ostringstream& stream);
+	void logError(const char* file, int line, ostringstream& stream);
+	void log(FILE* logFile, const char* codeFile, int line, const char* msg);
 	
 private:
 	CThostFtdcTraderApi* pUserTraderApi;
@@ -187,5 +193,9 @@ private:
 	// 需要获取CThostFtdcOrderField.OrderSysID 报单编号，用于查询状态
 	// 同上，需要记录每一手order的内容。first=orderId, second=orderField
 	unordered_map<int, CThostFtdcOrderField*> slipperyRtnOrderMap;
+
+	FILE* debugLogFile;
+	FILE* infoLogFile;
+	FILE* errorLogFile;
 	
 };

@@ -6,29 +6,34 @@ using namespace std;
 class Output2FILE
 {
 public:
-	static void Output(const string& msg);
-	static void SetStream(FILE* pFile);
+	Output2FILE(FILE* pFile);
+	void Output(const string& msg);
+	//FILE*& Stream();
 private:
-	static FILE*& StreamImpl();
-	static mutex mtx;
+	mutex mtx;
+	FILE* pStream;
 };
 
-inline FILE*& Output2FILE::StreamImpl()
+/*
+inline FILE*& Output2FILE::Stream()
 {
 	static FILE* pStream = stderr;
 	return pStream;
 }
 inline void Output2FILE::SetStream(FILE* pFile)
 {
-	mutex::scoped_lock lock(mtx);
-	StreamImpl() = pFile;
+	Output2FILE::mtx.lock();
+	Stream() = pFile;
+	Output2FILE::mtx.unlock();
 }
 inline void Output2FILE::Output(const std::string& msg)
 {
-	boost::mutex::scoped_lock lock(mtx);
-	FILE* pStream = StreamImpl();
+	Output2FILE::mtx.lock();
+	FILE* pStream = Stream();
 	if (!pStream)
 		return;
 	fprintf(pStream, "%s", msg.c_str());
 	fflush(pStream);
+	Output2FILE::mtx.unlock();
 }
+*/

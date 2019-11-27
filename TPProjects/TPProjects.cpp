@@ -14,19 +14,23 @@
 #include "Utils.h"
 #include <unordered_map>
 // https://github.com/amrayn/easyloggingpp#getting-started
-#include "easylogging++.h"
+#include "Output2FILE.h"
+#include <errno.h>
 
 using namespace std;
-// Please note that INITIALIZE_EASYLOGGINGPP should be used once and once-only,
-// otherwise you will end up getting compilation errors.
-INITIALIZE_EASYLOGGINGPP
 
 int main()
 {
-	// Load configuration from file
-	el::Configurations conf("logging.conf");
-	// Actually reconfigure all loggers instead
-	el::Loggers::reconfigureAllLoggers(conf);
+	/*
+	FILE* pFile;
+	errno_t err;
+	if ((err = fopen_s(&pFile, "application.log", "a")) != 0) {
+		cout << "CANNOT open log file" << endl;
+	}
+	Output2FILE logger(pFile);
+	fprintf(pFile, "%s [%s: %d] %s\n", __TIME__, __FILENAME__, __LINE__, "hello world");
+	logger.Output("hello 123");
+*/
 	// 保存生成的log文件的文件夹路径
 	string logFilePath = getConfig("config", "LogFilesPath");
 

@@ -51,13 +51,10 @@
     <ClCompile Include="SlipperyPhase.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="easylogging++.cc">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Log.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="Output2FILE.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="LogStream.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -104,13 +101,10 @@
     <ClInclude Include="SlipperyInsState.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="easylogging++.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Log.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Output2FILE.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LogStream.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

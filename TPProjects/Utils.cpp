@@ -99,3 +99,9 @@ bool inThisPeriod(string phasePeriod, tm time) {
 		return false;
 	}
 }
+
+void clearStream(ostringstream& stream)
+{
+	stream.clear();
+	stream.str("");
+}
