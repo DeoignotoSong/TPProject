@@ -21,17 +21,6 @@ using namespace std;
 
 int main()
 {
-	/*
-	FILE* pFile;
-	errno_t err;
-	if ((err = fopen_s(&pFile, "application.log", "a")) != 0) {
-		cout << "CANNOT open log file" << endl;
-	}
-	Output2FILE logger(pFile);
-	fprintf(pFile, "%s [%s: %d] %s\n", __TIME__, __FILENAME__, __LINE__, "hello world");
-	logger.Output("hello 123");
-*/
-	// 保存生成的log文件的文件夹路径
 	string logFilePath = getConfig("config", "LogFilesPath");
 
 	// 创建保存生成的log文件的文件夹
@@ -75,18 +64,4 @@ int main()
 		m_pApi->Init();
 		m_pApi->Release();
 	}
-	/*
-	CThostFtdcMdApi* m_tApi = CThostFtdcMdApi::CreateFtdcMdApi("./flow/");
-
-	CMdHandler ph(m_tApi);
-
-	m_tApi->RegisterSpi(&ph);
-
-	m_tApi->RegisterFront((char *)"tcp://218.202.237.33:10112");
-
-	m_tApi->Init();
-
-	m_tApi->Join();
-	*/
-	// m_tApi->Release();
 }

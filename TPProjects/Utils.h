@@ -14,3 +14,5 @@ chrono::system_clock::time_point getSlipPhaseBStartTime();
 chrono::system_clock::time_point getSlipPhaseCStartTime();
 bool inThisPeriod(string phasePeriod, tm time);
 void clearStream(ostringstream& stream);
+string* getLogPostfix();
+bool isEndNow();
