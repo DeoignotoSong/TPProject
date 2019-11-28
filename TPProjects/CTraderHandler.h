@@ -128,6 +128,8 @@ public:
 	void queryTrade(string instId, string exgId);
 	// scan slipperyInsStateMap 所有合约单的状态
 	void scanSlipperyOrderState();
+	// query a request 查询某一报单状态
+	void queryOrderState(int reqId, string insId);
 	// 撤销滑点报单
 	void cancelInstrument(int reqId);
 	// 报单查询请求。当客户端发出报单查询指令后，交易托管系统返回响应时，该方法会被调用

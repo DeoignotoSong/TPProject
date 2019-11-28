@@ -415,7 +415,7 @@ void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 	int result = 0;
 	int retry = 3;
 	os << "thread-" << this_thread::get_id() << " calls waitForProcess";
-	LOG_INFO(os);
+	LOG_DEBUG(os);
 	waitForProcess();
 	while (retry-- > 0)
 	{
@@ -428,7 +428,7 @@ void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 		if (0 == result) {
 			clearStream(os);
 			os << "set unRepliedReq " << orderReqIndex;
-			LOG_INFO( os);
+			LOG_DEBUG( os);
 			unRepliedReq = orderReqIndex;
 			slipperyInsStateMap[instrumentId][orderReqIndex] =
 				new SlipperyInsState(SlipperyInsState::STATE_ENUM::STARTED, orderReqIndex);
@@ -547,12 +547,15 @@ void CTraderHandler::waitForProcess()
 {
 	ostringstream os;
 	os<<"thread-"<< this_thread::get_id()<< " waits LOCK";
-	LOG_INFO(os);
+	LOG_DEBUG(os);
 	reqQueueMtx.lock();
 	clearStream(os);
 	os << "thread-" << this_thread::get_id() << " gets LOCK";
-	LOG_INFO(os);
+	LOG_DEBUG(os);
 	while (unRepliedReq >= 0) {
+		clearStream(os);
+		os << "unRepliedReq is " << unRepliedReq;
+		LOG_DEBUG(os);
 		this_thread::sleep_for(chrono::milliseconds(200));
 	}
 	unRepliedReq = 0;
@@ -564,7 +567,7 @@ void CTraderHandler::releaseProcessLock(int reqId)
 	if (unRepliedReq == reqId) {
 		ostringstream os;
 		os << "pre UnReplied ReqId is " << unRepliedReq << ", now release it";
-		LOG_INFO( os);
+		LOG_DEBUG( os);
 		unRepliedReq = -1;
 	}
 }
@@ -587,53 +590,58 @@ void CTraderHandler::logError(const char* file, int line, std::ostringstream& st
 void CTraderHandler::log(FILE* logFile, const char* codeFile, int line, const char* msg)
 {
 	logMtx.lock();
+	fprintf(stdout, "%s [%s: %d] %s\n", __TIME__, codeFile, line, msg);
 	fprintf(logFile, "%s [%s: %d] %s\n", __TIME__, codeFile, line, msg);
+	fflush(stdout);
 	fflush(logFile);
 	logMtx.unlock();
 }
 
 void CTraderHandler::slipPhaseCProcess() {
 	ostringstream os;
-	os << "开始第三阶段检测";
-	LOG_INFO(os );
-	//printSlipperyInsStateMap();
-	bool orderSubmit = false;
-	for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
-		vector<int> delList;
-		mtx.lock();
-		for (auto orderItem = stateMap->second.begin(); orderItem != stateMap->second.end(); orderItem++) {
-			//LOG_INFO( "Instrument " + stateMap->first + ", reqId is " + orderItem->first + ", state is " + orderItem->second->getState());
-			// 暂未match的报单, 撤回
-			if (orderItem->second->getState() == SlipperyInsState::ORDERED) {
-				cancelInstrument(orderItem->first);
-				orderSubmit = true;
-				break;
-			}//已撤回和确定未成单的报单，再下单。此类型报单需要对map进行修改，需要加锁
-			else if (orderItem->second->getState() == SlipperyInsState::RETRIVED
-				|| orderItem->second->getState() == SlipperyInsState::UNTRADED
-				|| orderItem->second->getState() == SlipperyInsState::ORDER_FAILED) {
-				delList.push_back(orderItem->first);
-				submitSlipperyOrder(stateMap->first);
-				orderSubmit = true;
+	os << "开始第三阶段检测 in Thread-"<<this_thread::get_id();
+	LOG_INFO(os);
+	while (true) {
+		bool orderSubmit = false;
+		for (auto stateMap = slipperyInsStateMap.begin(); stateMap != slipperyInsStateMap.end(); stateMap++) {
+			vector<int> delList;
+			mtx.lock();
+			for (auto orderItem = stateMap->second.begin(); orderItem != stateMap->second.end(); orderItem++) {
+				//LOG_INFO( "Instrument " + stateMap->first + ", reqId is " + orderItem->first + ", state is " + orderItem->second->getState());
+				// 暂未match的报单, 撤回
+				if (orderItem->second->getState() == SlipperyInsState::ORDERED) {
+					cancelInstrument(orderItem->first);
+					orderSubmit = true;
+					break;
+				}//已撤回和确定未成单的报单，再下单。此类型报单需要对map进行修改，需要加锁
+				else if (orderItem->second->getState() == SlipperyInsState::RETRIVED
+					|| orderItem->second->getState() == SlipperyInsState::UNTRADED
+					|| orderItem->second->getState() == SlipperyInsState::ORDER_FAILED) {
+					delList.push_back(orderItem->first);
+					submitSlipperyOrder(stateMap->first);
+					orderSubmit = true;
+					break;
+				}
+			}
+			for (auto delIter = delList.begin(); delIter != delList.end(); delIter++) {
+				slipperyInsStateMap[stateMap->first].erase(*delIter);
+			}
+			mtx.unlock();
+			if (orderSubmit) {
 				break;
 			}
 		}
-		for (auto delIter = delList.begin(); delIter != delList.end(); delIter++) {
-			slipperyInsStateMap[stateMap->first].erase(*delIter);
-		}
-		mtx.unlock();
-		if (orderSubmit) {
+		// 如果没有合约需要改变，跳出循环检查
+		if (!orderSubmit) {
 			break;
 		}
 	}
-	// 如果没有合约需要改变，该线程关闭
-	if (!orderSubmit) {
-		printSlipperyInsStateMap();
-		clearStream(os);
-		os << "第三阶段完成，close";
-		LOG_INFO(os );
-		terminate();
-	}
+
+	printSlipperyInsStateMap();
+	clearStream(os);
+	os << "第三阶段完成，close";
+	LOG_INFO(os);
+	terminate();
 }
 
 void CTraderHandler::backgroundQuery() {
@@ -802,7 +810,7 @@ void CTraderHandler::OnRspQryTradingAccount(CThostFtdcTradingAccountField* pTrad
 void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 {
 	ostringstream os;
-	os <<"================================================================";
+	os <<"========";
 	os <<"OnRtnOrder is called in Thread-" << this_thread::get_id();
 	string insId = pOrder->InstrumentID;
 	int reqId = pOrder->RequestID;
@@ -876,9 +884,10 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 		else {
 			actionIfSlipperyCanceled(insId, pOrder->RequestID);
 			//  如果处于第二部分报单的第三阶段，call slipPhaseCProcess，继续检查slipperyInsStateMap其它合约
+			/*
 			if (curPhase == SlipperyPhase::PHASE_3) {
 				slipPhaseCProcess();
-			}
+			}*/
 		}
 	}
 	// 合约单成交
@@ -901,9 +910,10 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 		else{// 滑点订单回调
 			actionIfSlipperyTraded(insId, pOrder->RequestID);
 			//  如果处于第二部分报单的第三阶段，call slipPhaseCProcess，继续检查slipperyInsStateMap其它合约
+			/*
 			if (curPhase == SlipperyPhase::PHASE_3) {
 				slipPhaseCProcess();
-			}
+			}*/
 		}
 	}
 	else if (pOrder->OrderSubmitStatus == THOST_FTDC_OSS_Accepted && pOrder->OrderStatus == THOST_FTDC_OST_NoTradeQueueing) {
@@ -951,74 +961,80 @@ void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CT
 
 void CTraderHandler::scanSlipperyOrderState() {
 	ostringstream os;
-	bool needScan = false;
 	string insId;
 	int reqId;
-	mtx.lock();
-	for (auto it = slipperyInsStateMap.begin(); it != slipperyInsStateMap.end(); it++) {
-		for (auto itemIt = it->second.begin(); itemIt != it->second.end(); itemIt++) {
-			if (itemIt->second->getState() != SlipperyInsState::ORDERED
-				// && itemIt->second->getState() != SlipperyInsState::STARTED
-				&& itemIt->second->getState() != SlipperyInsState::RETRIVED) {
-				// 仅两状态需要scan
-				// STARTED状态不查询，因为该状态下还未形成报单，没有对应的order信息可获取
-				continue;
+	while (true) {
+		bool needScan = false;
+		mtx.lock();
+		for (auto it = slipperyInsStateMap.begin(); it != slipperyInsStateMap.end(); it++) {
+			for (auto itemIt = it->second.begin(); itemIt != it->second.end(); itemIt++) {
+				if (itemIt->second->getState() != SlipperyInsState::ORDERED
+					// && itemIt->second->getState() != SlipperyInsState::STARTED
+					&& itemIt->second->getState() != SlipperyInsState::RETRIVED) {
+					// 仅两状态需要scan
+					// STARTED状态不查询，因为该状态下还未形成报单，没有对应的order信息可获取
+					continue;
+				}
+				else { //只需要找到一个需要scan的合约就进行Query，等待回调函数中再call该函数
+					needScan = true;
+					insId = it->first;
+					reqId = itemIt->first;
+					break;
+				}
 			}
-			else { //只需要找到一个需要scan的合约就进行Query，等待回调函数中再call该函数
-				needScan = true;
-				insId = it->first;
-				reqId = itemIt->first;
+			if (needScan) {
+				queryOrderState(reqId, insId);
 				break;
 			}
 		}
-		if (needScan) {
+		mtx.unlock();
+
+	// 如果needScan == false, 意味着slipperyInsStateMap中所有的合约处于NO_INFO, ORDER_FAILED, DONE状态
+	// 已完成第二部分报单任务, 该线程可结束
+		if (!needScan) {
 			break;
 		}
 	}
-	mtx.unlock();
-	// 如果needScan == false, 意味着slipperyInsStateMap中所有的合约处于NO_INFO, ORDER_FAILED, DONE状态
-	// 已完成第二部分报单任务, 该线程可结束
-	if (!needScan) {
-		terminate();
-	}// 如果needScan == true，意味着仍有合约需要scan
-	else
-	{
-		CThostFtdcOrderField* order = slipperyRtnOrderMap[reqId];
-		CThostFtdcQryOrderField field = { 0 };
-		// 文档注释里说，“不写 BrokerID 可以收全所有报单。” 不懂什么意思
-		strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
-		strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
-		strcpy_s(field.InstrumentID, insId.c_str());
-		strcpy_s(field.OrderSysID, order->OrderSysID);
-		int result = 0;
-		int retry = 3;
-		waitForProcess();
-		while (--retry > 0) {
-			result = pUserTraderApi->ReqQryOrder(&field, ++orderReqIndex);
-			if (0 == result) {
-				unRepliedReq = orderReqIndex;
-				break;
-			}
-			else {
-				if (result == -1) {
-					os << "ReqQryOrder encountered 网络连接失败";
-					LOG_ERROR(os)  ;
-				}
-				this_thread::sleep_for(chrono::milliseconds(1000));
-			}
+	terminate();
+}
+
+void CTraderHandler::queryOrderState(int reqId, string insId) {
+	ostringstream os;
+	CThostFtdcOrderField* order = slipperyRtnOrderMap[reqId];
+	CThostFtdcQryOrderField field = { 0 };
+	// 文档注释里说，“不写 BrokerID 可以收全所有报单。” 不懂什么意思
+	strcpy_s(field.BrokerID, getConfig("config", "BrokerID").c_str());
+	strcpy_s(field.InvestorID, getConfig("config", "InvestorID").c_str());
+	strcpy_s(field.InstrumentID, insId.c_str());
+	strcpy_s(field.OrderSysID, order->OrderSysID);
+	int result = 0;
+	int retry = 3;
+	waitForProcess();
+	while (--retry > 0) {
+		result = pUserTraderApi->ReqQryOrder(&field, ++orderReqIndex);
+		if (0 == result) {
+			unRepliedReq = orderReqIndex;
+			break;
 		}
-		// 此处经常result=-2，表示未处理请求超过许可数
-		if (result < 0) {
-			clearStream(os);
-			os << insId << " 订单状态查询失败, result = " << result;
-			LOG_INFO(os);
-			unRepliedReq = -1;
-			// then wait for a while
+		else {
+			if (result == -1) {
+				os << "ReqQryOrder encountered 网络连接失败";
+				LOG_ERROR(os);
+			}
 			this_thread::sleep_for(chrono::milliseconds(1000));
 		}
-		// 暂停0.2s 用来控QPS
-		this_thread::sleep_for(chrono::milliseconds(200));
 	}
+	// 此处经常result=-2，表示未处理请求超过许可数
+	if (result < 0) {
+		clearStream(os);
+		os << insId << " 订单状态查询失败, result = " << result;
+		LOG_INFO(os);
+		unRepliedReq = -1;
+		// then wait for a while
+		this_thread::sleep_for(chrono::milliseconds(1000));
+	}
+	// 暂停0.2s 用来控QPS
+	this_thread::sleep_for(chrono::milliseconds(200));
 }
 
 void CTraderHandler::actionIfSlipperyTraded(string instrumentId, int reqId) {
@@ -1136,8 +1152,6 @@ void CTraderHandler::OnRspQryOrder(CThostFtdcOrderField* pOrder, CThostFtdcRspIn
 			slipperyRtnOrderMap[nRequestID] = pOrder;
 		}
 	}
-	//再次scan, 直到所有报单状态到达终态
-	scanSlipperyOrderState();
 }
 
 /*
@@ -1204,9 +1218,10 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 				slipperyInsStateMap[insId][reqId] = new SlipperyInsState(SlipperyInsState::ORDER_FAILED, reqId);
 			}
 			//  如果处于第二部分报单的第三阶段，call slipPhaseCProcess，继续检查slipperyInsStateMap其它合约
+			/*
 			if (curPhase == SlipperyPhase::PHASE_3) {
 				slipPhaseCProcess();
-			}
+			}*/
 		}
 		releaseProcessLock(reqId);
 	}
@@ -1236,7 +1251,7 @@ void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId
 	// 查询合约深度行情回调函数：OnRspQryDepthMarketData
 	ostringstream os;
 	os << "thread-" << this_thread::get_id() << " calls waitForProcess";
-	LOG_INFO( os);
+	LOG_DEBUG( os);
 	waitForProcess();
 	int result = 0;
 	int retry = 3;
@@ -1248,7 +1263,7 @@ void CTraderHandler::queryDepthMarketData(string instrumentId, string exchangeId
 			unRepliedReq = queryReqIndex;
 			clearStream(os);
 			os << "set unRepliedReq as " << queryReqIndex;
-			LOG_INFO( os);
+			LOG_DEBUG( os);
 			unRepliedReq = queryReqIndex;
 			onceQueryMarker.insert(pair<int, string>(queryReqIndex, instrumentId));
 			return;
