@@ -358,10 +358,10 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 	}
 	this_thread::sleep_until(tp);
 	if (phase == SlipperyPhase::PHASE_1) {
-		os<< "=============Begin Second part PHASE_1=============";
+		os<< "=====Begin Second part PHASE_1====in Thread-"<<this_thread::get_id();
 	}
 	else {
-		 os<<"=============Begin Second part PHASE_2=============";
+		 os<<"=====Begin Second part PHASE_2====in Thread-" << this_thread::get_id();
 	}
 	LOG_INFO(os);
 	// 记录当前处于何阶段
@@ -616,6 +616,7 @@ void CTraderHandler::slipPhaseCProcess() {
 				clearStream(os);
 				os << "Time is up, stop Phase 3";
 				LOG_INFO(os);
+				runningFlag = false;
 				return;
 			}
 			vector<int> delList;
