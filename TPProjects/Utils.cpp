@@ -105,22 +105,3 @@ void clearStream(ostringstream& stream)
 	stream.clear();
 	stream.str("");
 }
-
-string* getLogPostfix()
-{
-	time_t now = time(NULL);
-	tm now_tm;
-	localtime_s(&now_tm, &now);
-	string postfix = "-";
-	postfix += now_tm.tm_mon;
-	postfix += "-";
-	postfix += now_tm.tm_mday;
-	postfix += "-";
-	postfix += now_tm.tm_hour;
-	return &postfix;
-}
-
-bool isEndNow()
-{
-	return false;
-}

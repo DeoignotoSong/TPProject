@@ -14,7 +14,6 @@
 #include "Utils.h"
 #include <unordered_map>
 // https://github.com/amrayn/easyloggingpp#getting-started
-#include "Output2FILE.h"
 #include <errno.h>
 
 using namespace std;
@@ -39,7 +38,7 @@ int main()
 	while (true) {
 		cout << "waiting for Auction Start Time" << endl;
 		this_thread::sleep_until(getAuctionStartTime());
-
+		cout << "time is ready" << endl;
 		// 创建Trader实例
 		CThostFtdcTraderApi* m_pApi = CThostFtdcTraderApi::CreateFtdcTraderApi(logFilePath.c_str());
 

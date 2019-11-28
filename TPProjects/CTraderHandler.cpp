@@ -7,7 +7,6 @@ CTraderHandler::CTraderHandler(CThostFtdcTraderApi* pUserTraderApi) {
 	this->pUserTraderApi = pUserTraderApi;
 	queryReqIndex = 0;
 	orderReqIndex = 0;
-
 	errno_t err;
 	if ((err = fopen_s(&debugLogFile, "logs/Debug.log", "a")) != 0) {
 		cout<< "CANNOT create Debug.log" <<endl;
@@ -598,8 +597,11 @@ void CTraderHandler::logError(const char* file, int line, std::ostringstream& st
 void CTraderHandler::log(FILE* logFile, const char* codeFile, int line, const char* msg)
 {
 	logMtx.lock();
-	fprintf(stdout, "%s [%s: %d] %s\n", __TIME__, codeFile, line, msg);
-	fprintf(logFile, "%s [%s: %d] %s\n", __TIME__, codeFile, line, msg);
+	time_t t = time(NULL);
+	tm timePtr;
+	localtime_s(&timePtr, &t);
+	fprintf(stdout, "%d:%d:%d [%s: %d] %s\n", timePtr.tm_hour, timePtr.tm_min, timePtr.tm_sec, codeFile, line, msg);
+	fprintf(logFile, "%d:%d:%d [%s: %d] %s\n", timePtr.tm_hour, timePtr.tm_min, timePtr.tm_sec, codeFile, line, msg);
 	fflush(stdout);
 	fflush(logFile);
 	logMtx.unlock();
@@ -675,8 +677,27 @@ void CTraderHandler::backgroundQuery() {
 vector<string> CTraderHandler::loadInstruments() {
 	ostringstream os;
 	vector<string> content;
+
+	bool readSucc = loadFile2Vector("map.conf", content);
+	if (!readSucc) {
+		os << "load map.conf FAILED";
+		LOG_ERROR(os);
+	}
+	else {
+		clearStream(os);
+		os << "load map.conf succeed!";
+		LOG_INFO(os);
+		// load数据进入内存
+		for (size_t i = 0; i < content.size(); i++)
+		{
+			vector<string> arr = split(content.at(i), ",");
+			instrumentsExchange[arr[0]] = arr[1];
+		}
+	}
+
+	content.clear();
 	// load doc1.log into auctionInsOrderMap. doc1存储集合竞价的合约单
-	bool readSucc = loadFile2Vector("doc1.log", content);
+	readSucc = loadFile2Vector("doc1.log", content);
 	if (!readSucc) {
 		os << "load doc1.log FAILED";
 		LOG_ERROR(os);
@@ -689,9 +710,8 @@ vector<string> CTraderHandler::loadInstruments() {
 		for (size_t i = 0; i < content.size(); i++)
 		{
 			vector<string> arr = split(content.at(i), ",");
-			allInstruments.push_back(arr.at(1));
-			instrumentsExchange[arr.at(1)] = arr.at(2);
-			auctionInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(3))));
+			allInstruments.push_back(arr.at(0));
+			auctionInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(0), InstrumentOrderInfo(arr.at(1))));
 		}
 	}
 
@@ -711,10 +731,9 @@ vector<string> CTraderHandler::loadInstruments() {
 		for (size_t i = 0; i < content.size(); i++)
 		{
 			vector<string> arr = split(content.at(i), ",");
-			allInstruments.push_back(arr.at(1));
-			instrumentsExchange[arr.at(1)] = arr.at(2);
-			slipperyInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(3))));
-			slipperyInsStateMap.insert(pair<string, unordered_map<int, SlipperyInsState*>>(arr.at(1), unordered_map<int, SlipperyInsState*>()));
+			allInstruments.push_back(arr.at(0));
+			slipperyInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(0), InstrumentOrderInfo(arr.at(1))));
+			slipperyInsStateMap.insert(pair<string, unordered_map<int, SlipperyInsState*>>(arr.at(0), unordered_map<int, SlipperyInsState*>()));
 		}
 	}
 	return content;
