@@ -105,3 +105,17 @@ void clearStream(ostringstream& stream)
 	stream.clear();
 	stream.str("");
 }
+
+string findExchangeByIns(string& instrument, unordered_map<string, string> insExgMap) {
+	int lastIdx = 0;
+	for (int i = 0; i < instrument.length(); i++)
+	{
+		if (instrument.at(i) >= '0' && instrument.at(i) <= '9') {
+			break;
+		}
+		else {
+			lastIdx = i;
+		}
+	}
+	return insExgMap[instrument.substr(0, lastIdx + 1)];
+}

@@ -108,9 +108,6 @@
     <None Include="config.ini">
       <Filter>头文件</Filter>
     </None>
-    <None Include="logging.conf">
-      <Filter>头文件</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Library Include="thostmduserapi_se.lib" />

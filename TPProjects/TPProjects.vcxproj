@@ -184,7 +184,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="config.ini" />
-    <None Include="logging.conf" />
     <None Include="thostmduserapi_se.dll" />
     <None Include="thosttraderapi_se.dll" />
   </ItemGroup>

@@ -88,7 +88,7 @@ CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumen
 	bool buyIn = orderInfo.buyOrSell();
 	// 第二部分要求每次报单一手
 	int vol = 1;
-	double price = choosePrice(lastestInfo);
+	double price = choosePrice(lastestInfo, buyIn);
 	int requestId = this->orderReqIndex;
 	ostringstream os;
 	os << "当前报价\n合约：" << instrumentID << "\nAskPrice: " << lastestInfo->AskPrice1 << "\nBidPrice: " << lastestInfo->BidPrice1 << "\n";
@@ -97,7 +97,7 @@ CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumen
 	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_IOC, requestId);
 }
 
-double CTraderHandler::choosePrice(CThostFtdcDepthMarketDataField* latestInfo) {
+double CTraderHandler::choosePrice(CThostFtdcDepthMarketDataField* latestInfo, bool buyIn) {
 	double price = latestInfo->OpenPrice;
 	switch (SlipperyPhase::getPhase()) {
 	case(SlipperyPhase::PHASE_1): {
@@ -106,12 +106,15 @@ double CTraderHandler::choosePrice(CThostFtdcDepthMarketDataField* latestInfo) {
 	}
 	case(SlipperyPhase::PHASE_2): {
 		// 对手价
-		price = latestInfo->BidPrice1;
+		price = buyIn ? latestInfo->AskPrice1 : latestInfo->BidPrice1;
 		break;
 	}
 	case(SlipperyPhase::PHASE_3): {
 		// 对手价加高
-		price = latestInfo->BidPrice1 + atof(getConfig("config", "premium").c_str());
+		double premium = atof(getConfig("config", "premium").c_str());
+		// 此处需要严卡上下限制，否则容易出现财产流失
+		price = buyIn ? (premium > latestInfo->AskPrice1 ? latestInfo->AskPrice1 : latestInfo->AskPrice1 + premium)
+			: (premium >= latestInfo->BidPrice1 ? latestInfo->BidPrice1 : latestInfo->BidPrice1 - premium);
 		break;
 	}
 	}
@@ -368,7 +371,9 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 	for (auto iter = slipperyInsOrderMap.begin(); iter != slipperyInsOrderMap.end(); iter++) {
 		string instrumentId = iter->first;
 		InstrumentOrderInfo orderInfo = iter->second;
-		//LOG_INFO( "IntrumentId: "+ instrumentId);
+		clearStream(os);
+		os << "IntrumentId: " << instrumentId;
+		LOG_INFO(os);
 		if (instrumentInfoMap.find(instrumentId) == instrumentInfoMap.end()) {
 			//LOG_INFO( "不存在于instrumentInfoMap中，不可下单");
 			// 如果instrumentId不在instrumentInfoMap，说明查询数据失败
@@ -400,7 +405,7 @@ void CTraderHandler::callSlippery(SlipperyPhase::PHASE_ENUM phase) {
 			}
 			vector<int> delList;
 			for (auto orderIter = pair->second.begin(); orderIter != pair->second.end(); orderIter++) {
-				if (orderIter->first > phaseIILastReqId) {
+				if (phaseIILastReqId > 0 && orderIter->first > phaseIILastReqId) {
 					continue;
 				}
 				if (orderIter->second->getState() == SlipperyInsState::UNTRADED
@@ -558,18 +563,12 @@ void CTraderHandler::printSlipperyInsStateMap() {
 
 void CTraderHandler::waitForProcess()
 {
-	ostringstream os;
 	reqQueueMtx.lock();
-	os << "Thread-" << this_thread::get_id() << " takes waitForProcess lock";
-	LOG_DEBUG(os);
 	while (unRepliedReq >= 0) {
 		this_thread::sleep_for(chrono::milliseconds(200));
 	}
 	unRepliedReq = 0;
 	reqQueueMtx.unlock();
-	clearStream(os);
-	os << "Thread-" << this_thread::get_id() << " release waitForProcess lock";
-	LOG_DEBUG(os);
 }
 
 void CTraderHandler::releaseProcessLock(int reqId)
@@ -677,6 +676,7 @@ void CTraderHandler::backgroundQuery() {
 vector<string> CTraderHandler::loadInstruments() {
 	ostringstream os;
 	vector<string> content;
+	unordered_map<string, string> insExgMap;
 
 	bool readSucc = loadFile2Vector("map.conf", content);
 	if (!readSucc) {
@@ -687,11 +687,10 @@ vector<string> CTraderHandler::loadInstruments() {
 		clearStream(os);
 		os << "load map.conf succeed!";
 		LOG_INFO(os);
-		// load数据进入内存
 		for (size_t i = 0; i < content.size(); i++)
 		{
 			vector<string> arr = split(content.at(i), ",");
-			instrumentsExchange[arr[0]] = arr[1];
+			insExgMap[arr[0]] = arr[1];
 		}
 	}
 
@@ -710,8 +709,9 @@ vector<string> CTraderHandler::loadInstruments() {
 		for (size_t i = 0; i < content.size(); i++)
 		{
 			vector<string> arr = split(content.at(i), ",");
-			allInstruments.push_back(arr.at(0));
-			auctionInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(0), InstrumentOrderInfo(arr.at(1))));
+			allInstruments.push_back(arr.at(1));
+			auctionInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(2))));
+			instrumentsExchange[arr.at(1)] = findExchangeByIns(arr.at(1), insExgMap);
 		}
 	}
 
@@ -731,9 +731,10 @@ vector<string> CTraderHandler::loadInstruments() {
 		for (size_t i = 0; i < content.size(); i++)
 		{
 			vector<string> arr = split(content.at(i), ",");
-			allInstruments.push_back(arr.at(0));
-			slipperyInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(0), InstrumentOrderInfo(arr.at(1))));
-			slipperyInsStateMap.insert(pair<string, unordered_map<int, SlipperyInsState*>>(arr.at(0), unordered_map<int, SlipperyInsState*>()));
+			allInstruments.push_back(arr.at(1));
+			instrumentsExchange[arr.at(1)] = findExchangeByIns(arr.at(1), insExgMap);
+			slipperyInsOrderMap.insert(pair<string, InstrumentOrderInfo>(arr.at(1), InstrumentOrderInfo(arr.at(2))));
+			slipperyInsStateMap.insert(pair<string, unordered_map<int, SlipperyInsState*>>(arr.at(1), unordered_map<int, SlipperyInsState*>()));
 		}
 	}
 	return content;
@@ -975,9 +976,7 @@ void CTraderHandler::OnRtnTrade(CThostFtdcTradeField* pTrade)
 void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
 	ostringstream os;
-	os <<"================================================================" ;	
-	os << "OnRspOrderInsert is called" ;
-	os << "nRequestID: " << nRequestID<<endl;
+	os <<"=======================" << "OnRspOrderInsert is called" << "nRequestID: " << nRequestID<<endl;
 	if (pRspInfo != nullptr) {
 		//LOG_INFO( "OnRspOrderInsert says it's failed" ) ;
 		//LOG_INFO( "错误代码" + pRspInfo->ErrorID  );
@@ -990,7 +989,7 @@ void CTraderHandler::OnRspOrderInsert(CThostFtdcInputOrderField* pInputOrder, CT
 		releaseProcessLock(pInputOrder->RequestID);
 	}
 	
-	LOG_INFO( os ) ;
+	LOG_DEBUG( os ) ;
 }
 
 void CTraderHandler::scanSlipperyOrderState() {

@@ -117,7 +117,7 @@ public:
 	// 提交滑点订单
 	void submitSlipperyOrder(string instrumentId);
 	// 价格生成器，根据时间和lastestInfo生成最合适的价格
-	double choosePrice(CThostFtdcDepthMarketDataField* lastestInfo);
+	double choosePrice(CThostFtdcDepthMarketDataField* lastestInfo, bool buyIn);
 	// 集合竞价下单，只执行一次，将auctionInsOrderMap中的内容逐一下单
 	void callAuction();
 	// 滑点下单，即第二部分下单，将slipperyInsOrderMap中的内容
