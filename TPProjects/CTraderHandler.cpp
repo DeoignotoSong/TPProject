@@ -74,8 +74,8 @@ CThostFtdcInputOrderField CTraderHandler::composeAuctionInputOrder(string instru
 	int requestId = this->orderReqIndex;
 	ostringstream os;
 	os << "当前报价\n合约：" << instrumentID << "\nOpenPrice: " << lastestInfo->OpenPrice
-		<< "\nAskPrice: " << lastestInfo->AskPrice1 << "\nBidPrice: " << lastestInfo->BidPrice1 << "\n"
-		<< "\nLastPrice: " << lastestInfo->LastPrice;
+		<< "\nAskPrice: " << lastestInfo->AskPrice1 << "\nBidPrice: " << lastestInfo->BidPrice1
+		<< "\nLastPrice: " << lastestInfo->LastPrice << "\n";
 	os << "下单信息\n下单合约：" << instrumentID << "\n下单价格：" << price << "\n下单数：" << vol << "\n买卖方向：" << (buyIn ? "买" : "卖") << "\n";
 	LOG_INFO(os);
 	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFA, requestId);
@@ -94,8 +94,8 @@ CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumen
 	int requestId = this->orderReqIndex;
 	ostringstream os;
 	os << "当前报价\n合约：" << instrumentID << "\nOpenPrice: " << lastestInfo->OpenPrice
-		<< "\nAskPrice: " << lastestInfo->AskPrice1 << "\nBidPrice: " << lastestInfo->BidPrice1 << "\n"
-		<< "\nLastPrice: " << lastestInfo->LastPrice;
+		<< "\nAskPrice: " << lastestInfo->AskPrice1 << "\nBidPrice: " << lastestInfo->BidPrice1
+		<< "\nLastPrice: " << lastestInfo->LastPrice << "\n";
 	os << "下单信息\n下单合约：" << instrumentID << "\n下单价格：" << price << "\n下单数：" << vol << "\n买卖方向：" << (buyIn ? "买" : "卖") << "\n";
 	LOG_INFO(os);
 	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_IOC, requestId);
