@@ -13,6 +13,6 @@ chrono::system_clock::time_point getSlipperyPhaseStartTime(string phaseName);
 chrono::system_clock::time_point getSlipPhaseAStartTime();
 chrono::system_clock::time_point getSlipPhaseBStartTime();
 chrono::system_clock::time_point getSlipPhaseCStartTime();
-bool inThisPeriod(string phasePeriod, tm time);
+int inThisPeriod(string phasePeriod, tm time);
 void clearStream(ostringstream& stream);
 string findExchangeByIns(string& instrument, unordered_map<string, string> insExgMap);

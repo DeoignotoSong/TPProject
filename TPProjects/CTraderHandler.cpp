@@ -73,10 +73,10 @@ CThostFtdcInputOrderField CTraderHandler::composeAuctionInputOrder(string instru
 	double price = lastestInfo->OpenPrice;
 	int requestId = this->orderReqIndex;
 	ostringstream os;
-	os << "当前报价\n合约：" << instrumentID << "\nOpenPrice: " << lastestInfo->OpenPrice
+	os << "\n=========当前报价=========\n查询合约：" << instrumentID << "\nOpenPrice: " << lastestInfo->OpenPrice
 		<< "\nAskPrice: " << lastestInfo->AskPrice1 << "\nBidPrice: " << lastestInfo->BidPrice1
-		<< "\nLastPrice: " << lastestInfo->LastPrice << "\n";
-	os << "下单信息\n下单合约：" << instrumentID << "\n下单价格：" << price << "\n下单数：" << vol << "\n买卖方向：" << (buyIn ? "买" : "卖") << "\n";
+		<< "\nLastPrice: " << lastestInfo->LastPrice << "\n"
+		<< "=========下单信息=========\n下单合约：" << instrumentID << "\n下单价格：" << price << "\n下单数：" << vol << "\n买卖方向：" << (buyIn ? "买" : "卖");
 	LOG_INFO(os);
 	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_GFA, requestId);
 }
@@ -93,10 +93,10 @@ CThostFtdcInputOrderField CTraderHandler::composeSlipInputOrder(string instrumen
 	double price = choosePrice(lastestInfo, buyIn);
 	int requestId = this->orderReqIndex;
 	ostringstream os;
-	os << "当前报价\n合约：" << instrumentID << "\nOpenPrice: " << lastestInfo->OpenPrice
+	os << "\n=========当前报价=========\n查询合约：" << instrumentID << "\nOpenPrice: " << lastestInfo->OpenPrice
 		<< "\nAskPrice: " << lastestInfo->AskPrice1 << "\nBidPrice: " << lastestInfo->BidPrice1
-		<< "\nLastPrice: " << lastestInfo->LastPrice << "\n";
-	os << "下单信息\n下单合约：" << instrumentID << "\n下单价格：" << price << "\n下单数：" << vol << "\n买卖方向：" << (buyIn ? "买" : "卖") << "\n";
+		<< "\nLastPrice: " << lastestInfo->LastPrice 
+		<< "\n=========下单信息=========\n下单合约：" << instrumentID << "\n下单价格：" << price << "\n下单数：" << vol << "\n买卖方向：" << (buyIn ? "买" : "卖");
 	LOG_INFO(os);
 	return composeInputOrder(instrumentID, exchangeID, buyIn, vol, price, THOST_FTDC_TC_IOC, requestId);
 }
@@ -971,9 +971,12 @@ void CTraderHandler::OnRtnOrder(CThostFtdcOrderField* pOrder)
 // 个人认为，该方法被调用到时，OnRtnOrder也会被调用到，所以该方法中不做实现
 void CTraderHandler::OnRtnTrade(CThostFtdcTradeField* pTrade)
 {
-	//LOG_INFO( "================================================================" ) ;
-	//LOG_INFO( "OnRtnTrade is called"  );
-	//LOG_INFO( "================================================================" ) ;
+	ostringstream os;
+	os << "=======OnRtnTrade is called=======\n";
+	if (pTrade != nullptr) {
+		os << "instrumentID: " << pTrade->InstrumentID << "\n";
+	}
+	LOG_INFO(os);
 }
 
 // 报单录入应答。 当客户端发出过报单录入指令后， 交易托管系统返回响应时，该方法会被调用

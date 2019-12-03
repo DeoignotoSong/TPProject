@@ -75,7 +75,7 @@ chrono::system_clock::time_point getSlipPhaseCStartTime() {
 }
 
 // phasePeriod: 21:00:00-21:00:30
-bool inThisPeriod(string phasePeriod, tm time) {
+int inThisPeriod(string phasePeriod, tm time) {
 	vector<string> periodStr = split(phasePeriod,"-");
 	// ´¦Àí21:00:00
 	string startStr = periodStr.at(0);
@@ -93,10 +93,15 @@ bool inThisPeriod(string phasePeriod, tm time) {
 	if (time.tm_hour >= sHour && time.tm_hour <= eHour
 		&& time.tm_min >= sMinute && time.tm_min <= eMinute
 		&& time.tm_sec >= sSecond && time.tm_sec <= eSecond) {
-		return true;
+		return 0;
+	}
+	else if(time.tm_hour < sHour 
+		|| (time.tm_hour == sHour && time.tm_min < sMinute)
+		|| (time.tm_hour == sHour && time.tm_min == sMinute && time.tm_sec < sSecond)) {
+		return -1;
 	}
 	else {
-		return false;
+		return 1;
 	}
 }
 
