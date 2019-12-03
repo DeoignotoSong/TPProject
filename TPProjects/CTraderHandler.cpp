@@ -313,7 +313,7 @@ void CTraderHandler::callAuction() {
 			result = pUserTraderApi->ReqOrderInsert(&order, orderReqIndex);
 			if (0 == result) {
 				clearStream(os);
-				os<<"Order ReqId: "<<orderReqIndex;
+				os<<"报单 ReqId: "<<orderReqIndex;
 				LOG_INFO(os);
 				auctionInsStateMap.insert(pair<string, AuctionInsState*>(instrumentId,
 					new AuctionInsState(AuctionInsState::STATE_ENUM::STARTED, orderReqIndex)));
@@ -445,8 +445,8 @@ void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 		result = pUserTraderApi->ReqOrderInsert(&order, orderReqIndex);
 		if (0 == result) {
 			clearStream(os);
-			os << "set unRepliedReq " << orderReqIndex;
-			LOG_DEBUG( os);
+			os << "报单 ReqId " << orderReqIndex;
+			LOG_INFO( os);
 			unRepliedReq = orderReqIndex;
 			slipperyInsStateMap[instrumentId][orderReqIndex] =
 				new SlipperyInsState(SlipperyInsState::STATE_ENUM::STARTED, orderReqIndex);
