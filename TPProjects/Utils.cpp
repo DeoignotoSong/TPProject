@@ -83,21 +83,20 @@ int inThisPeriod(string phasePeriod, tm time) {
 	int sHour = stoi(startArr.at(0));
 	int sMinute = stoi(startArr.at(1));
 	int sSecond = stoi(startArr.at(2));
+	int startSec = sHour * 3600 + sMinute * 60 + sSecond;
 	// 处理21:00:30
 	string endStr = periodStr.at(1);
 	vector<string> endArr = split(endStr, ":");
 	int eHour = stoi(endArr.at(0));
 	int eMinute = stoi(endArr.at(1));
 	int eSecond = stoi(endArr.at(2));
+	int endSec = eHour * 3600 + eMinute * 60 + eSecond;
 	//判断是否在其中
-	if (time.tm_hour >= sHour && time.tm_hour <= eHour
-		&& time.tm_min >= sMinute && time.tm_min <= eMinute
-		&& time.tm_sec >= sSecond && time.tm_sec <= eSecond) {
+	int nowSec = time.tm_hour * 3600 + time.tm_min * 60 + time.tm_sec;
+	if (nowSec >= startSec && nowSec < endSec) {
 		return 0;
 	}
-	else if(time.tm_hour < sHour 
-		|| (time.tm_hour == sHour && time.tm_min < sMinute)
-		|| (time.tm_hour == sHour && time.tm_min == sMinute && time.tm_sec < sSecond)) {
+	else if(nowSec < startSec) {
 		return -1;
 	}
 	else {
