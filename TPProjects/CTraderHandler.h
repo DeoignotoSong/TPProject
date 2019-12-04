@@ -165,7 +165,8 @@ private:
 	int queryReqIndex;
 	int orderReqIndex;
 	int insQueryId = 0;
-	bool runningFlag = false;
+	volatile bool beginBackgroundQuery = false;
+	bool endBackgroundQuery = false;
 	SlipperyPhase::PHASE_ENUM curPhase = SlipperyPhase::OUT_OF_PHASE;
 	int auctionLastReqId = 0;
 	int phaseILastReqId = 0;
