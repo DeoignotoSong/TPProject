@@ -29,8 +29,10 @@ chrono::system_clock::time_point getNextStartTime(int hour, int minute, int seco
 	struct tm today_tm = { second, minute, hour, now_tm.tm_mday, now_tm.tm_mon, now_tm.tm_year };
 	chrono::system_clock::time_point today_tp = chrono::system_clock::from_time_t(mktime(&today_tm));
 	chrono::system_clock::time_point output_tp;
+	int configTime = hour * 3600 + minute * 60 + second;
+	int nowTime = now_tm.tm_hour * 3600 + now_tm.tm_min * 60 + now_tm.tm_sec;
 	// earlier than 08:30 AM
-	if (hour >= now_tm.tm_hour && minute >= now_tm.tm_min) {
+	if (nowTime <= configTime) {
 		output_tp = today_tp;
 	}// later than 08:30 AM
 	else {
@@ -47,7 +49,8 @@ chrono::system_clock::time_point getAuctionStartTime() {
 	vector<string> time = split(startTime, ":");
 	int hour = stoi(time.at(0));
 	int minute = stoi(time.at(1));
-	return getNextStartTime(hour, minute, 0);
+	int second = stoi(time.at(2));
+	return getNextStartTime(hour, minute, second);
 }
 
 chrono::system_clock::time_point getSlipperyPhaseStartTime(string phaseName) {
