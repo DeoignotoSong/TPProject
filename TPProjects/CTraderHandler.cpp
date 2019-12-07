@@ -1264,16 +1264,10 @@ void CTraderHandler::OnErrRtnOrderInsert(CThostFtdcInputOrderField* pInputOrder,
 
 void CTraderHandler::OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField* pSettlementInfoConfirm, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
-	//LOG_INFO( "=============加载文件 doc1.log & doc2.log =============" ) ;
 	loadInstruments();
-	//LOG_INFO( "=============开始查询合约信息=============" ) ;
-
 	// 从文件的第一条合约单开始
 	string instrument = allInstruments.at(0);
 	queryDepthMarketData(instrument,getExchangeId(instrument));
-
-	//callSlippage();
-	//beginQuery();
 }
 
 
