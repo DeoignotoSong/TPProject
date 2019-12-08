@@ -441,7 +441,6 @@ void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 	while (retry-- > 0)
 	{
 		++orderReqIndex;
-		
 		os << instrumentId << "下单一次 in Thread-" << this_thread::get_id();
 		LOG_INFO( os);
 		CThostFtdcInputOrderField order = composeSlipInputOrder(instrumentId);
@@ -467,7 +466,6 @@ void CTraderHandler::submitSlipperyOrder(string instrumentId) {
 	}
 	if (result < 0) {
 		unRepliedReq = -1;
-		
 		os << instrumentId << "下单失败";
 		LOG_INFO( os ) ;
 	}
@@ -1073,7 +1071,7 @@ void CTraderHandler::queryOrderState(int reqId, string insId) {
 
 void CTraderHandler::actionIfSlipperyTraded(string instrumentId, int reqId) {
 	ostringstream os;
-	os << instrumentId << "\treqId-" << reqId << "在第二部分";
+	os << instrumentId << " reqId-" << reqId << "在第二部分";
     if(reqId <= phaseILastReqId){
 		os << "阶段一成交";
 	}
@@ -1083,6 +1081,7 @@ void CTraderHandler::actionIfSlipperyTraded(string instrumentId, int reqId) {
 	else {
 		os << "阶段三成交";
 	}
+	os << "; phaseILastReqId: " << phaseILastReqId << ", phaseIILastReqId: " << phaseIILastReqId;
 	LOG_INFO(os);
 	if (slipperyInsStateMap[instrumentId].find(reqId) != slipperyInsStateMap[instrumentId].end()) {
 		auto insState = slipperyInsStateMap.find(instrumentId)->second;
